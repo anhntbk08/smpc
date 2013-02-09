@@ -1,4 +1,4 @@
-go-smpc
+SMPC Primitives for Go
 =======
 A simple SMPC library in Go.
 DO NOT USE THIS FOR ANYTHING TRULY SECURE, THIS HAS NOT BEEN AUDITED

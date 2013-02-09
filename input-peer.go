@@ -10,16 +10,21 @@ import (
    "math/big"
 )
 
-const largePrime int64 = 9223372036854775783
+// The largest 63-bit prime number
+const largePrime int64 = 9223372036854775783 
+
+// Distribute a secret among a certain number of peers. Use the large Prime number above
+// as the field
 func DistributeSecret (num int64, shares int32) ([]int64) {
     return ShamirSecretSharing (num, shares, largePrime)
 }
 
+// Interpolate and reconstruct the secret in the prime field specified by largePrime
 func ReconstructSecret (shares *[]int64, sharesAvailable *[]bool, nshare int32) (int64) {
    return Interpolate (shares, sharesAvailable, nshare, largePrime)
 }
 
-
+// The actual secret sharing function, computes coefficients for the polynomial
 func ShamirSecretSharing (num int64, shares int32, prime int64) ([]int64){
     if shares <= 0 {
         return nil
@@ -40,6 +45,7 @@ func ShamirSecretSharing (num int64, shares int32, prime int64) ([]int64){
     return SharesForCoefficients (shares, &coeffs, degree, primebig)
 }
 
+// Compute shares given a polynomial (specified as a set of coefficients
 func SharesForCoefficients (shares int32, coeffs *[]big.Int, degree int32, primebig *big.Int) ([]int64) {
     result := make([]int64, shares)
     for share := int32(0); share < shares; share++ {
@@ -59,12 +65,14 @@ func SharesForCoefficients (shares int32, coeffs *[]big.Int, degree int32, prime
     return result
 }
 
+// Fast exponentiation
 func FastExp (n int64, exp *big.Int, field *big.Int) (*big.Int) {
     nBig := big.NewInt(int64(n))
     result := big.NewInt(0)
     return result.Exp(nBig, exp, field)
 }
 
+// Lagrangian interpolation to reconstruct the constant factor for a polynomial
 func Interpolate (shares *[]int64, shareAvailable *[]bool, nshare int32, prime int64) (int64) {
     primebig := big.NewInt(prime)
     resultbig := big.NewInt(0)

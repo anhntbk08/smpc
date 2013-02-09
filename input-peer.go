@@ -34,15 +34,21 @@ func ShamirSecretSharing (num int64, shares int32, prime int64) ([]int64){
         return nil
     }
     degree := (shares - 1) / 2 // Degree must be no greater than (shares - 1)/2 to allow for multiplication 
+    coeffs := GenerateCoefficients (degree, big.NewInt(num), prime) 
+    primebig := big.NewInt(prime)
+    return SharesForCoefficients (shares, &coeffs, degree, primebig)
+}
+
+// Generate coefficients
+func GenerateCoefficients (degree int32, c *big.Int, prime int64) ([]big.Int) {
     coeffs := make([]big.Int, degree + 1)
-    coeffs[0].Set(big.NewInt(num)) // The constant is the constant coefficient for the argument
+    coeffs[0].Set(c) // The constant is the constant coefficient for the argument
     for coeff := int32(1); coeff < degree + 1; coeff++ {
       var tmp int64
       binary.Read(rand.Reader, binary.LittleEndian, &tmp)
       coeffs[coeff].Set(big.NewInt(tmp % prime))
     }
-    primebig := big.NewInt(prime)
-    return SharesForCoefficients (shares, &coeffs, degree, primebig)
+    return coeffs
 }
 
 // Compute shares given a polynomial (specified as a set of coefficients

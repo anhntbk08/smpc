@@ -1,4 +1,5 @@
 go-smpc
 =======
+A simple SMPC library in Go.
 
-SMPC library in Go
+DO NOT USE THIS FOR ANYTHING TRULY SECURE, THIS HAS NOT BEEN AUDITED

@@ -52,3 +52,72 @@ func (s *InputPeerSuite) TestAddSub_1(c *C) {
    reconstructed := ReconstructSecret(&shares3, &[]bool{true, false, true}, 3)
    c.Check(reconstructed, Equals, int64(2))
 }
+
+func Multiply (a int64, b int64) (int64) {
+   shares1 := DistributeSecret (a, 3)
+   shares2 := DistributeSecret (b, 3)
+   mshares := make([][]int64, 3)
+   for i := 0; i < len(mshares); i++ {
+     mshares[i] = make([]int64, 3)
+   }
+   rshares := make([]int64, 3)
+   for i := 0; i < len(shares1); i++ {
+      temp := MultShares (shares1[i], shares2[i], 3)
+      for j := 0; j < 3; j++ {
+        mshares[j][i] = temp[j]
+      }
+   }
+   for i := 0; i < len(mshares); i++ {
+     rshares[i] = ReconstructSecret(&mshares[i], &[]bool{true, true, true}, 3)
+   }
+   return ReconstructSecret(&rshares, &[]bool{true, true, true}, 3)
+}
+
+func (s *InputPeerSuite) TestMul_1(c *C) {
+   c.Check(Multiply(int64(1), int64(1)), Equals, int64(1))
+   c.Check(Multiply(int64(7), int64(1)), Equals, int64(7))
+   c.Check(Multiply(int64(2), int64(4)), Equals, int64(8))
+   c.Check(Multiply(int64(15), int64(13)), Equals, int64(195))
+   c.Check(Multiply(int64(169), int64(169)), Equals, int64(28561))
+   c.Check(Multiply(int64(12), int64(24)), Equals, int64(288))
+   c.Check(Multiply(int64(2), int64(2)), Equals, int64(4))
+}
+
+func (s *InputPeerSuite) TestMul_2 (c *C) {
+   shares1 := DistributeSecret (int64(7), 3)
+   shares2 := DistributeSecret (int64(8), 3)
+   mshares := make([][]int64, 3)
+   for i := 0; i < len(mshares); i++ {
+     mshares[i] = make([]int64, 3)
+   }
+   rshares0 := make([]int64, 3)
+   for i := 0; i < len(shares1); i++ {
+      temp := MultShares (shares1[i], shares2[i], 3)
+      for j := 0; j < 3; j++ {
+        mshares[j][i] = temp[j]
+      }
+   }
+   for i := 0; i < len(mshares); i++ {
+     rshares0[i] = ReconstructSecret(&mshares[i], &[]bool{true, true, true}, 3)
+   }
+   shares1 = DistributeSecret (int64(7), 3)
+   shares2 = DistributeSecret (int64(8), 3)
+   mshares = make([][]int64, 3)
+   for i := 0; i < len(mshares); i++ {
+     mshares[i] = make([]int64, 3)
+   }
+   rshares1 := make([]int64, 3)
+   for i := 0; i < len(shares1); i++ {
+      temp := MultShares (shares1[i], shares2[i], 3)
+      for j := 0; j < 3; j++ {
+        mshares[j][i] = temp[j]
+      }
+   }
+   for i := 0; i < len(mshares); i++ {
+     rshares1[i] = ReconstructSecret(&mshares[i], &[]bool{true, true, true}, 3)
+   }
+
+   for i := 0; i < len(rshares0); i++ {
+       c.Check(rshares0[i], Not(Equals), rshares1[i])
+   }
+}

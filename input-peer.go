@@ -8,7 +8,6 @@ import (
    "encoding/binary"
    "crypto/rand"
    "math/big"
-   "fmt"
 )
 
 const largePrime int64 = 9223372036854775783
@@ -30,7 +29,6 @@ func ShamirSecretSharing (num int64, shares int32, prime int64) ([]int64){
         return nil
     }
     degree := (shares - 1) / 2 // Degree must be no greater than (shares - 1)/2 to allow for multiplication 
-    fmt.Printf("Shares = %d, degree = %d\n", shares, degree)
     coeffs := make([]big.Int, degree + 1)
     coeffs[0].Set(big.NewInt(num)) // The constant is the constant coefficient for the argument
     for coeff := int32(1); coeff < degree + 1; coeff++ {
@@ -69,7 +67,6 @@ func FastExp (n int64, exp *big.Int, field *big.Int) (*big.Int) {
 
 func Interpolate (shares *[]int64, shareAvailable *[]bool, nshare int32, prime int64) (int64) {
     primebig := big.NewInt(prime)
-    fmt.Printf("Prime = %d, Prime Big = %d\n", prime, primebig.Int64())
     resultbig := big.NewInt(0)
     for share := int32(0); share < nshare; share++ {
       if ((*shareAvailable)[share]) {
@@ -83,16 +80,12 @@ func Interpolate (shares *[]int64, shareAvailable *[]bool, nshare int32, prime i
           denominator.Mul(denominator, big.NewInt(int64(share - otherShare)))
         }
         lagrange := big.NewInt(1)
-        fmt.Printf("Numerator = %d, Denominator = %d\n", numerator, denominator)
-        fmt.Printf("Prime = %d, Prime Big = %d\n", prime, primebig.Int64())
         lagrange.DivMod(numerator, denominator, primebig)
         primebig.Set(big.NewInt(prime)) // Strangely divmod sets primebig to 0, divmod bad
-        fmt.Printf("Prime = %d, Prime Big = %d, Lagrange = %d, Shares = %d\n", prime, primebig.Int64(), lagrange.Int64(), (*shares)[share])
         tmp := big.NewInt(1)
         tmp.Mul(big.NewInt((*shares)[share]), lagrange)
         resultTmp := big.NewInt(0)
         resultTmp.Add(tmp, resultbig)
-        fmt.Printf("%d Prime Big = %d\n", resultTmp.Int64(), primebig.Int64())
         resultbig.Mod(resultTmp, primebig)
       }
     }

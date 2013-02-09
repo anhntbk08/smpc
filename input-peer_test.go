@@ -7,7 +7,7 @@ import (
       "testing"
       . "launchpad.net/gocheck"
       "math/big"
-      //"fmt"
+      "fmt"
 )
 
 func Test (t *testing.T) {TestingT(t) }
@@ -35,4 +35,20 @@ func (s *InputPeerSuite) TestInputPeer_1(c *C) {
     c.Check(fetest.Int64(), Equals, int64(1))
     reconstructed := ReconstructSecret (&shares, &[]bool{true, true, true}, 3) 
     c.Check(reconstructed, Equals, int64(3231524))
+    reconstructed = ReconstructSecret (&shares, &[]bool{true, true, false}, 3)
+    c.Check(reconstructed, Equals, int64(3231524))
+    reconstructed = ReconstructSecret (&shares, &[]bool{true, false, false}, 3)
+    c.Check(reconstructed, Not(Equals), int64(3231524))
+}
+
+func (s *InputPeerSuite) TestAddSub_1(c *C) {
+   shares1 := DistributeSecret (int64(1), 3)
+   shares2 := DistributeSecret (int64(1), 3)
+   shares3 := make([]int64, 3)
+   for i := 0; i < len(shares1); i++ {
+       fmt.Printf("%d %d\n", shares1[i], shares2[i])
+       shares3[i] = Add(shares1[i], shares2[i])
+   }
+   reconstructed := ReconstructSecret(&shares3, &[]bool{true, false, true}, 3)
+   c.Check(reconstructed, Equals, int64(2))
 }

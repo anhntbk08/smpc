@@ -1,0 +1,34 @@
+package proto;
+
+message Action {
+  enum Action {
+      Add = 0;
+      Mul = 1;
+      Set = 2;
+      Retrieve = 3;
+  }
+  required Action action = 1;
+  required string result = 2;
+  optional string share0 = 3;
+  optional string share1 = 4;
+  optional int64 value = 5;
+}
+
+message Response {
+   enum Status {
+       OK = 0;
+       Error = 1;
+       Val = 2;
+   }
+   required Status status = 1;
+   optional int64 share = 2;
+}
+
+message IntermediateData {
+    enum DataType {
+        Mul = 0;
+    }
+    required int32 node = 1;
+    required int32 step = 2;
+    required int64 data = 3;
+}

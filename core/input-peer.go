@@ -1,4 +1,4 @@
-package smpc
+package core
 /* An SMPC input peer in Go, mostly written as a way to
    - Teach myself Go
    - Figure out what the hell is going on with SMPC
@@ -11,17 +11,17 @@ import (
 )
 
 // The largest 63-bit prime number
-const largePrime int64 = 9223372036854775783 
+const LargePrime int64 = 9223372036854775783 
 
 // Distribute a secret among a certain number of peers. Use the large Prime number above
 // as the field
 func DistributeSecret (num int64, shares int32) ([]int64) {
-    return ShamirSecretSharing (num, shares, largePrime)
+    return ShamirSecretSharing (num, shares, LargePrime)
 }
 
-// Interpolate and reconstruct the secret in the prime field specified by largePrime
+// Interpolate and reconstruct the secret in the prime field specified by LargePrime
 func ReconstructSecret (shares *[]int64, sharesAvailable *[]bool, nshare int32) (int64) {
-   return Interpolate (shares, sharesAvailable, nshare, largePrime)
+   return Interpolate (shares, sharesAvailable, nshare, LargePrime)
 }
 
 // The actual secret sharing function, computes coefficients for the polynomial

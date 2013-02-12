@@ -1,4 +1,4 @@
-package smpc
+package core
 /* 
   Multiplication for SMPC
   Multiplication proceeds in two stages:
@@ -12,7 +12,7 @@ import (
         )
 
 func MultShares (a int64, b int64, nshares int32) ([]int64) {
-   return SmpcMultShares(a, b, nshares, largePrime)
+   return SmpcMultShares(a, b, nshares, LargePrime)
 }
 
 func SmpcMultShares (a int64, b int64, nshares int32, prime int64) ([]int64) {
@@ -27,7 +27,7 @@ func SmpcMultShares (a int64, b int64, nshares int32, prime int64) ([]int64) {
 }
 
 func MultCombineShares (shares []int64, nshares int32) (int64) {
-   return SmpcMultCombineShares(shares, nshares, largePrime)
+   return SmpcMultCombineShares(shares, nshares, LargePrime)
 }
 
 func SmpcMultCombineShares (shares []int64, nshares int32, prime int64) (int64) {

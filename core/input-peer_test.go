@@ -1,4 +1,4 @@
-package smpc
+package core
 /* An SMPC input peer in Go, mostly written as a way to
    - Teach myself Go
    - Figure out what the hell is going on with SMPC

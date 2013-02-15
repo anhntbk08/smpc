@@ -10,6 +10,7 @@ import (
         "io/ioutil"
         "encoding/json"
         "code.google.com/p/goprotobuf/proto"
+        "time"
         )
 type Configuration struct {
     PubAddress string
@@ -17,61 +18,103 @@ type Configuration struct {
     Clients []string
     Shell   bool
 }
-func EventLoop (config *string, q chan int) {
+func SendHello (sock *zmq.Socket, exitChannel chan int, notificationChannel chan bool) {
+    sleepChan := make(chan bool, 1)
+    for true {
+        msg := make([][]byte, 1)
+        msg[0] = []byte("HELO")
+        err := sock.Send(msg)
+        if err != nil {
+            fmt.Println("Error sending HELO message on socket", err)
+            exitChannel <- 1
+            return
+        }
+        go func() {
+            time.Sleep(10 * time.Millisecond)
+            sleepChan <- true
+        }()
+        select {
+            case <- notificationChannel:
+                return
+            case <- sleepChan:
+            // Do nothing
+        }
+    }
+}
+
+/* Read and parse the configuration file */
+func ParseConfig (config *string, q chan int) (*Configuration) {
     fmt.Printf ("Starting with configuration %s\n", *config)
     // Read the configuration file
     contents, err := ioutil.ReadFile(*config)
     if err != nil {
         fmt.Printf ("Could not read configuration file, error = %s", err)
-        os.Exit(1)
+        q <- 1
+        return nil
     }
     var configStruct Configuration
     // Parse configuration, produce an object. We assume configuration is in JSON
     err = json.Unmarshal(contents, &configStruct)
     if err != nil {
         fmt.Println("Error reading json file: ", err)
-        os.Exit(1)
+        q <- 1
+        return nil
     }
     fmt.Printf("Shell %t\n", configStruct.Shell)
     for k, v := range configStruct.Clients {
         fmt.Printf("%d %s\n", k, v)
     }
+    return &configStruct
+}
+
+/* The main event loop */
+func EventLoop (config *string, q chan int) {
+    configStruct := ParseConfig(config, q)
     // Create the 0MQ context
     ctx, err := zmq.NewContext()
     if err != nil {
         fmt.Println("Error creating 0mq context: ", err)
-        os.Exit(1)
+        q <- 1
+        return
     }
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
     pubsock, err := ctx.Socket(zmq.Pub)
     if err != nil {
         fmt.Println("Error creating PUB socket: ", err)
-        os.Exit(1)
+        q <- 1
+        return
     }
     err = pubsock.Bind(configStruct.PubAddress)
     if err != nil {
         fmt.Println("Error binding PUB socket: ", err)
-        os.Exit(1)
+        q <- 1
+        return
     }
     // Establish coordination socket
     coordsock, err := ctx.Socket(zmq.Rep)
     if err != nil {
         fmt.Println("Error creating REP socket: ", err)
-        os.Exit(1)
+        q <- 1
+        return
     }
     err = coordsock.Bind(configStruct.ControlAddress)
     if err != nil {
         fmt.Println("Error creating  ", err)
-        os.Exit(1)
+        q <- 1
+        return
     }
     connectedSoFar := 0
     fmt.Printf("Waiting for %d connections\n", len(configStruct.Clients))
+    notification := make(chan bool, 1)
+    // Start a go routine to send HELO
+    go SendHello(pubsock, q, notification) 
     
     for connectedSoFar < len(configStruct.Clients) {
         syncMsg, err := coordsock.Recv()
         if err != nil {
             fmt.Println("Error receiving on coordination socket", err)
-            os.Exit(1)
+            q <- 1
+            return
         }
         var _ = syncMsg
         connectedSoFar += 1
@@ -81,9 +124,12 @@ func EventLoop (config *string, q chan int) {
         err = coordsock.Send(resp)
         if err != nil {
             fmt.Println("Error receiving on coordination socket", err)
-            os.Exit(1)
+            q <- 1
+            return
         }
     }
+    // Tell the HELO routine to stop
+    notification <- true
     q <- 0
     defer func() {
         pubsock.Close()
@@ -99,7 +145,7 @@ func main() {
     flag.Parse()
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
-    end_channel := make(chan int)
+    end_channel := make(chan int, 1)
     // TODO: THIS IS JUST TEST CODE THAT SHOULD BE DELETED
     action := new(sproto.Action)
     t := sproto.Action_Set
@@ -122,11 +168,11 @@ func main() {
     }
     // TODO: END THIS IS JUST TEST CODE THAT SHOULD BE DELETED
     go EventLoop(config, end_channel)
+    var status = 0
     select {
         case <- os_channel:
-        case <- end_channel: 
+        case status = <- end_channel: 
     }
-    // <-signal_channel
-    os.Exit(0)
+    os.Exit(status)
 }
 

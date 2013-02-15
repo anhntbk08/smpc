@@ -78,11 +78,10 @@ func EventLoop (config *string, q chan int) {
         fmt.Println("Error sending on coordination socket", err)
         q <- 1
     }
-    syncmsg, err := coordsock.Recv()
+    _, err = coordsock.Recv()
     if err != nil {
         fmt.Println("Error receiving on coordination socket", err)
     }
-    var _ = syncmsg
     q <- 0
     defer func() {
         subsock.Close()

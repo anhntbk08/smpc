@@ -15,7 +15,7 @@ import (
 type Configuration struct {
     PubAddress string
     ControlAddress string
-    Clients []string
+    Clients int
     Shell   bool
 }
 func SendHello (sock *zmq.Socket, exitChannel chan int, notificationChannel chan bool) {
@@ -60,10 +60,6 @@ func ParseConfig (config *string, q chan int) (*Configuration) {
         q <- 1
         return nil
     }
-    fmt.Printf("Shell %t\n", configStruct.Shell)
-    for k, v := range configStruct.Clients {
-        fmt.Printf("%d %s\n", k, v)
-    }
     return &configStruct
 }
 
@@ -104,21 +100,21 @@ func EventLoop (config *string, q chan int) {
         return
     }
     connectedSoFar := 0
-    fmt.Printf("Waiting for %d connections\n", len(configStruct.Clients))
-    notification := make(chan bool, 1)
+    fmt.Printf("Waiting for %d connections\n", configStruct.Clients)
+    // Make sure the notification channel cannot buffer messages, this is some what like a process.join
+    notification := make(chan bool, 0)
     // Start a go routine to send HELO
     go SendHello(pubsock, q, notification) 
     
-    for connectedSoFar < len(configStruct.Clients) {
-        syncMsg, err := coordsock.Recv()
+    for connectedSoFar < configStruct.Clients {
+        _, err := coordsock.Recv()
         if err != nil {
             fmt.Println("Error receiving on coordination socket", err)
             q <- 1
             return
         }
-        var _ = syncMsg
         connectedSoFar += 1
-        fmt.Printf("Waiting for %d connections\n", len(configStruct.Clients) - connectedSoFar)
+        fmt.Printf("Waiting for %d connections\n", configStruct.Clients - connectedSoFar)
         resp := make([][]byte, 1)
         resp[0] = make([]byte, 1)
         err = coordsock.Send(resp)

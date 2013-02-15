@@ -1,7 +1,6 @@
 package main
 import (
         //"github.com/apanda/smpc/core"
-        sproto "github.com/apanda/smpc/proto"
         zmq "github.com/apanda/go-zmq"
         "fmt"
         "flag"
@@ -9,13 +8,10 @@ import (
         "os/signal"
         "io/ioutil"
         "encoding/json"
-        "code.google.com/p/goprotobuf/proto"
         )
 type Configuration struct {
     PubAddress string
     ControlAddress string
-    Clients []string
-    Shell   bool
 }
 func EventLoop (config *string, q chan int) {
     fmt.Printf ("Starting with configuration %s\n", *config)
@@ -32,10 +28,6 @@ func EventLoop (config *string, q chan int) {
         fmt.Println("Error reading json file: ", err)
         os.Exit(1)
     }
-    fmt.Printf("Shell %t\n", configStruct.Shell)
-    for k, v := range configStruct.Clients {
-        fmt.Printf("%d %s\n", k, v)
-    }
     // Create the 0MQ context
     ctx, err := zmq.NewContext()
     if err != nil {
@@ -43,50 +35,42 @@ func EventLoop (config *string, q chan int) {
         os.Exit(1)
     }
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
-    pubsock, err := ctx.Socket(zmq.Pub)
+    subsock, err := ctx.Socket(zmq.Sub)
     if err != nil {
         fmt.Println("Error creating PUB socket: ", err)
         os.Exit(1)
     }
-    err = pubsock.Bind(configStruct.PubAddress)
+    err = subsock.Connect(configStruct.PubAddress)
     if err != nil {
         fmt.Println("Error binding PUB socket: ", err)
         os.Exit(1)
     }
     // Establish coordination socket
-    coordsock, err := ctx.Socket(zmq.Rep)
+    coordsock, err := ctx.Socket(zmq.Req)
     if err != nil {
         fmt.Println("Error creating REP socket: ", err)
         os.Exit(1)
     }
-    err = coordsock.Bind(configStruct.ControlAddress)
+    err = coordsock.Connect(configStruct.ControlAddress)
     if err != nil {
         fmt.Println("Error creating  ", err)
         os.Exit(1)
     }
-    connectedSoFar := 0
-    fmt.Printf("Waiting for %d connections\n", len(configStruct.Clients))
-    
-    for connectedSoFar < len(configStruct.Clients) {
-        syncMsg, err := coordsock.Recv()
-        if err != nil {
-            fmt.Println("Error receiving on coordination socket", err)
-            os.Exit(1)
-        }
-        var _ = syncMsg
-        connectedSoFar += 1
-        fmt.Printf("Waiting for %d connections\n", len(configStruct.Clients) - connectedSoFar)
-        resp := make([][]byte, 1)
-        resp[0] = make([]byte, 1)
-        err = coordsock.Send(resp)
-        if err != nil {
-            fmt.Println("Error receiving on coordination socket", err)
-            os.Exit(1)
-        }
+    resp := make([][]byte, 1)
+    resp[0] = make([]byte, 1)
+    err = coordsock.Send(resp)
+    if err != nil {
+        fmt.Println("Error sending on coordination socket", err)
+        os.Exit(1)
     }
+    syncmsg, err := coordsock.Recv()
+    if err != nil {
+        fmt.Println("Error receiving on coordination socket", err)
+    }
+    var _ = syncmsg
     q <- 0
     defer func() {
-        pubsock.Close()
+        subsock.Close()
         coordsock.Close()
         ctx.Close()
         fmt.Println("Closed socket")
@@ -100,27 +84,6 @@ func main() {
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     end_channel := make(chan int)
-    // TODO: THIS IS JUST TEST CODE THAT SHOULD BE DELETED
-    action := new(sproto.Action)
-    t := sproto.Action_Set
-    action.Action = &t
-    res := "food"
-    action.Result = &res
-    buffer, err := proto.Marshal(action)
-    if err != nil {
-        fmt.Println("error: ", err)
-        os.Exit(1)
-    }
-    unaction := &sproto.Action{}
-    err = proto.Unmarshal(buffer, unaction)
-    if err != nil {
-        fmt.Println("error: ", err)
-        os.Exit(1)
-    }
-    if *unaction.Result != *action.Result {
-        fmt.Println("Comparison failed")
-    }
-    // TODO: END THIS IS JUST TEST CODE THAT SHOULD BE DELETED
     go EventLoop(config, end_channel)
     select {
         case <- os_channel:

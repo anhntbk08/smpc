@@ -6,99 +6,141 @@ import (
         "flag"
         "os"
         "os/signal"
-        "io/ioutil"
-        "encoding/json"
+        sproto "github.com/apanda/smpc/proto"
         )
-type Configuration struct {
-    PubAddress string
-    ControlAddress string
+type ComputePeerState struct {
+    SubSock *zmq.Socket
+    CoordSock *zmq.Socket
+    SubChannel *zmq.Channels
+    CoordChannel *zmq.Channels
+    Shares map[string] int64
+    Client int
 }
-func EventLoop (config *string, q chan int) {
-    fmt.Printf ("Starting with configuration %s\n", *config)
-    // Read the configuration file
-    contents, err := ioutil.ReadFile(*config)
-    if err != nil {
-        fmt.Printf ("Could not read configuration file, error = %s", err)
-        q <- 1
+
+const BUFFER_SIZE int = 10
+
+// Set the value of a share
+func (state *ComputePeerState) SetValue (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Setting value ", *action.Result, *action.Value)
+    result := *action.Result
+    val := *action.Value
+    state.Shares[result] = int64(val)
+    fmt.Println("Set map value, preparing RESPONSE")
+    resp := &sproto.Response{}
+    rcode := action.GetRequestCode()
+    fmt.Println("Set map value, set response code, code is ", rcode)
+    resp.RequestCode = &rcode
+    status := sproto.Response_OK
+    resp.Status = &status
+    fmt.Println("Done setting")
+    return resp
+}
+
+func (state *ComputePeerState) DispatchAction (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Dispatching action")
+    switch *action.Action {
+        case sproto.Action_Set:
+            fmt.Println("Dispatching SET")
+            return state.SetValue(action)
+        default:
+            fmt.Println("Unimplemented action")
+            return nil
     }
-    var configStruct Configuration
-    // Parse configuration, produce an object. We assume configuration is in JSON
-    err = json.Unmarshal(contents, &configStruct)
-    if err != nil {
-        fmt.Println("Error reading json file: ", err)
+    return nil
+}
+
+func (state *ComputePeerState) CoordMsg (msg [][]byte, q chan int) {
+    fmt.Println("Received message from coordination channel")
+    action := MsgToAction(msg)
+    fmt.Println("Converted to action")
+    if action == nil {
         q <- 1
+        return
     }
+    resp :=  ResponseToMsg(state.DispatchAction(action))
+    fmt.Println("Sending response, ", len(resp))
+    if resp == nil {
+        q <- 1
+        return
+    }
+    state.CoordChannel.Out() <- resp
+}
+
+func EventLoop (config *string, client int, q chan int) {
+    configStruct := ParseConfig(config, q) 
     // Create the 0MQ context
     ctx, err := zmq.NewContext()
     if err != nil {
         fmt.Println("Error creating 0mq context: ", err)
         q <- 1
     }
+    state := &ComputePeerState{}
+    state.Client = client
+    state.Shares = make(map[string] int64, 1000)
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
-    subsock, err := ctx.Socket(zmq.Sub)
+    state.SubSock, err = ctx.Socket(zmq.Sub)
     if err != nil {
         fmt.Println("Error creating PUB socket: ", err)
         q <- 1
     }
-    err = subsock.Connect(configStruct.PubAddress)
+    err = state.SubSock.Connect(configStruct.PubAddress)
     if err != nil {
         fmt.Println("Error binding PUB socket: ", err)
         q <- 1
     }
-    // Subscribe to HELO messages
-    subsock.Subscribe([]byte("HELO"))
     // Establish coordination socket
-    coordsock, err := ctx.Socket(zmq.Req)
+    state.CoordSock, err = ctx.Socket(zmq.Dealer)
     if err != nil {
-        fmt.Println("Error creating REP socket: ", err)
+        fmt.Println("Error creating Dealer socket: ", err)
         q <- 1
     }
-    err = coordsock.Connect(configStruct.ControlAddress)
+    err = state.CoordSock.Connect(configStruct.ControlAddress)
     if err != nil {
         fmt.Println("Error connecting  ", err)
         q <- 1
     }
-
-    // Wait to receive one HELO message
-    _, err = subsock.Recv()
-    if err != nil {
-        fmt.Println("Receiving over subscription socket failed", err)
-        q <- 1
-        return
-    }
-    fmt.Println("Received HELO")
-    // HELO messages are now useless, unsubscribe
-    subsock.Unsubscribe([]byte("HELO"))
-
-    // Inform master of our presence on the network
-    resp := make([][]byte, 1)
-    resp[0] = make([]byte, 1)
-    err = coordsock.Send(resp)
-    if err != nil {
-        fmt.Println("Error sending on coordination socket", err)
-        q <- 1
-    }
-    _, err = coordsock.Recv()
-    if err != nil {
-        fmt.Println("Error receiving on coordination socket", err)
-    }
-    q <- 0
+    state.Sync(q)
+    state.SubSock.Subscribe([]byte("CMD"))
+    fmt.Println("Receiving")
+    // We cannot create channels before finalizing the set of subscriptions, since sockets are
+    // not thread safe. Hence first sync, then get channels
+    state.SubChannel = state.SubSock.ChannelsBuffer(BUFFER_SIZE)
+    state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE)
     defer func() {
-        subsock.Close()
-        coordsock.Close()
+        state.SubSock.Close()
+        state.CoordSock.Close()
         ctx.Close()
         fmt.Println("Closed socket")
     }()
+    for true {
+        fmt.Println("Starting to wait")
+        select {
+            case <- state.SubChannel.In():
+                fmt.Println("Received message from subscription channel")
+            case msg := <- state.CoordChannel.In():
+                state.CoordMsg(msg, q)
+            case err = <- state.SubChannel.Errors():
+                fmt.Println("Error in SubChannel", err)
+                q <- 1
+                return
+            case err = <- state.CoordChannel.Errors():
+                fmt.Println("Error in CoordChannel", err)
+                q <- 1
+                return
+        }
+    }
+    q <- 0
 }
 
 func main() {
     // Start up by setting up a flag for the configuration file
     config := flag.String("config", "conf", "Configuration file")
+    client := flag.Int("peer", 0, "Input peer")
     flag.Parse()
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     end_channel := make(chan int)
-    go EventLoop(config, end_channel)
+    go EventLoop(config, *client, end_channel)
     var status = 0
     select {
         case <- os_channel:

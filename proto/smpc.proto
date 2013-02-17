@@ -7,11 +7,12 @@ message Action {
       Set = 2;
       Retrieve = 3;
   }
-  required Action action = 1;
-  required string result = 2;
-  optional string share0 = 3;
-  optional string share1 = 4;
-  optional int64 value = 5;
+  required int64 request_code = 1;
+  required Action action = 2;
+  required string result = 3;
+  optional string share0 = 4;
+  optional string share1 = 5;
+  optional int64 value = 6;
 }
 
 message Response {
@@ -20,15 +21,17 @@ message Response {
        Error = 1;
        Val = 2;
    }
-   required Status status = 1;
-   optional int64 share = 2;
+   required int64 request_code = 1;
+   required Status status = 2;
+   optional int64 share = 3;
 }
 
 message IntermediateData {
     enum DataType {
         Mul = 0;
     }
-    required int32 node = 1;
-    required int32 step = 2;
-    required int64 data = 3;
+    required int64 request_code = 1;
+    required int32 node = 2;
+    required int32 step = 3;
+    required int64 data = 4;
 }

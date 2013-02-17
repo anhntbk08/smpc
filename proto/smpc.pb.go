@@ -128,17 +128,25 @@ func (x *IntermediateData_DataType) UnmarshalJSON(data []byte) error {
 }
 
 type Action struct {
-	Action           *Action_Action `protobuf:"varint,1,req,name=action,enum=proto.Action_Action" json:"action,omitempty"`
-	Result           *string        `protobuf:"bytes,2,req,name=result" json:"result,omitempty"`
-	Share0           *string        `protobuf:"bytes,3,opt,name=share0" json:"share0,omitempty"`
-	Share1           *string        `protobuf:"bytes,4,opt,name=share1" json:"share1,omitempty"`
-	Value            *int64         `protobuf:"varint,5,opt,name=value" json:"value,omitempty"`
+	RequestCode      *int64         `protobuf:"varint,1,req,name=request_code" json:"request_code,omitempty"`
+	Action           *Action_Action `protobuf:"varint,2,req,name=action,enum=proto.Action_Action" json:"action,omitempty"`
+	Result           *string        `protobuf:"bytes,3,req,name=result" json:"result,omitempty"`
+	Share0           *string        `protobuf:"bytes,4,opt,name=share0" json:"share0,omitempty"`
+	Share1           *string        `protobuf:"bytes,5,opt,name=share1" json:"share1,omitempty"`
+	Value            *int64         `protobuf:"varint,6,opt,name=value" json:"value,omitempty"`
 	XXX_unrecognized []byte         `json:"-"`
 }
 
 func (this *Action) Reset()         { *this = Action{} }
 func (this *Action) String() string { return proto1.CompactTextString(this) }
 func (*Action) ProtoMessage()       {}
+
+func (this *Action) GetRequestCode() int64 {
+	if this != nil && this.RequestCode != nil {
+		return *this.RequestCode
+	}
+	return 0
+}
 
 func (this *Action) GetAction() Action_Action {
 	if this != nil && this.Action != nil {
@@ -176,14 +184,22 @@ func (this *Action) GetValue() int64 {
 }
 
 type Response struct {
-	Status           *Response_Status `protobuf:"varint,1,req,name=status,enum=proto.Response_Status" json:"status,omitempty"`
-	Share            *int64           `protobuf:"varint,2,opt,name=share" json:"share,omitempty"`
+	RequestCode      *int64           `protobuf:"varint,1,req,name=request_code" json:"request_code,omitempty"`
+	Status           *Response_Status `protobuf:"varint,2,req,name=status,enum=proto.Response_Status" json:"status,omitempty"`
+	Share            *int64           `protobuf:"varint,3,opt,name=share" json:"share,omitempty"`
 	XXX_unrecognized []byte           `json:"-"`
 }
 
 func (this *Response) Reset()         { *this = Response{} }
 func (this *Response) String() string { return proto1.CompactTextString(this) }
 func (*Response) ProtoMessage()       {}
+
+func (this *Response) GetRequestCode() int64 {
+	if this != nil && this.RequestCode != nil {
+		return *this.RequestCode
+	}
+	return 0
+}
 
 func (this *Response) GetStatus() Response_Status {
 	if this != nil && this.Status != nil {
@@ -200,15 +216,23 @@ func (this *Response) GetShare() int64 {
 }
 
 type IntermediateData struct {
-	Node             *int32 `protobuf:"varint,1,req,name=node" json:"node,omitempty"`
-	Step             *int32 `protobuf:"varint,2,req,name=step" json:"step,omitempty"`
-	Data             *int64 `protobuf:"varint,3,req,name=data" json:"data,omitempty"`
+	RequestCode      *int64 `protobuf:"varint,1,req,name=request_code" json:"request_code,omitempty"`
+	Node             *int32 `protobuf:"varint,2,req,name=node" json:"node,omitempty"`
+	Step             *int32 `protobuf:"varint,3,req,name=step" json:"step,omitempty"`
+	Data             *int64 `protobuf:"varint,4,req,name=data" json:"data,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
 func (this *IntermediateData) Reset()         { *this = IntermediateData{} }
 func (this *IntermediateData) String() string { return proto1.CompactTextString(this) }
 func (*IntermediateData) ProtoMessage()       {}
+
+func (this *IntermediateData) GetRequestCode() int64 {
+	if this != nil && this.RequestCode != nil {
+		return *this.RequestCode
+	}
+	return 0
+}
 
 func (this *IntermediateData) GetNode() int32 {
 	if this != nil && this.Node != nil {

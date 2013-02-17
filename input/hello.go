@@ -5,6 +5,7 @@ import (
         //"github.com/apanda/smpc/core"
         "fmt"
         "time"
+        "encoding/binary"
         )
 func (state *InputPeerState) SendHello (exitChannel chan int, notificationChannel chan bool) {
     sleepChan := make(chan bool, 1)
@@ -36,13 +37,14 @@ func (state *InputPeerState) Sync (q chan int) {
     
     for connectedSoFar < state.Config.Clients {
         msg := <- state.CoordChannel.In()
-        /* if err != nil {
-            fmt.Println("Error receiving on coordination socket", err)
+        tempId, _ := binary.Varint(msg[1])
+        clientId := int(tempId)
+        fmt.Printf("Found client %d (len = %d)\n", clientId, len(msg))
+        if state.ComputeSlaves[clientId] != nil {
+            fmt.Printf("Bad client ID\n")
             q <- 1
-            return
-        }*/
-        // Save client identity
-        state.ComputeSlaves[connectedSoFar] = msg[0]
+        }
+        state.ComputeSlaves[clientId] = msg[0]
         connectedSoFar += 1
         fmt.Printf("Waiting for %d connections\n", state.Config.Clients - connectedSoFar)
     }

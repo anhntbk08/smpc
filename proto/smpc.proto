@@ -22,8 +22,9 @@ message Response {
        Val = 2;
    }
    required int64 request_code = 1;
-   required Status status = 2;
-   optional int64 share = 3;
+   required int32 client = 2;
+   required Status status = 3;
+   optional int64 share = 4;
 }
 
 message IntermediateData {

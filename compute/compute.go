@@ -1,12 +1,13 @@
 package main
 import (
-        //"github.com/apanda/smpc/core"
+        "github.com/apanda/smpc/core"
         zmq "github.com/apanda/go-zmq"
         "fmt"
         "flag"
         "os"
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
+        "sync"
         )
 type ComputePeerState struct {
     SubSock *zmq.Socket
@@ -14,17 +15,33 @@ type ComputePeerState struct {
     SubChannel *zmq.Channels
     CoordChannel *zmq.Channels
     Shares map[string] int64
+    ShareLock sync.RWMutex
+    OutstandingRequests sync.WaitGroup
     Client int
+
 }
 
 const BUFFER_SIZE int = 10
+
+func (state *ComputePeerState) SharesGet (share string) (int64) {
+    state.ShareLock.RLock()
+    defer state.ShareLock.RUnlock()
+    return state.Shares[share]
+}
+
+func (state *ComputePeerState) SharesSet (share string, value int64) {
+    state.ShareLock.Lock()
+    defer state.ShareLock.Unlock()
+    state.Shares[share] = value
+}
 
 // Set the value of a share
 func (state *ComputePeerState) SetValue (action *sproto.Action) (*sproto.Response) {
     fmt.Println("Setting value ", *action.Result, *action.Value)
     result := *action.Result
     val := *action.Value
-    state.Shares[result] = int64(val)
+    //state.Shares[result] = int64(val)
+    state.SharesSet(result, int64(val))
     fmt.Println("Set map value, preparing RESPONSE")
     resp := &sproto.Response{}
     rcode := action.GetRequestCode()
@@ -32,16 +49,66 @@ func (state *ComputePeerState) SetValue (action *sproto.Action) (*sproto.Respons
     resp.RequestCode = &rcode
     status := sproto.Response_OK
     resp.Status = &status
+    client := int32(state.Client)
+    resp.Client = &client
     fmt.Println("Done setting")
     return resp
 }
 
+// Retrieve the value of a share
+func (state *ComputePeerState) GetValue (action *sproto.Action) (*sproto.Response) {
+    state.OutstandingRequests.Done() // First remove this particular request from what is outstanding
+    state.OutstandingRequests.Wait() // Then wait for everything else to finish
+    state.OutstandingRequests.Add(1) // Then go back to accounting for this request
+    result := *action.Result
+    val := state.SharesGet(result)
+    fmt.Println("Got the map value, preparing RESPONSE")
+    resp := &sproto.Response{}
+    rcode := action.GetRequestCode()
+    fmt.Println("Set map value, set response code, code is ", rcode)
+    resp.RequestCode = &rcode
+    resp.Share = &val
+    status := sproto.Response_Val
+    resp.Status = &status
+    client := int32(state.Client)
+    resp.Client = &client
+    fmt.Println("Done setting")
+    return resp
+}
+
+// Add two shares
+func (state *ComputePeerState) Add (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Adding two values")
+    result := *action.Result
+    share0 := *action.Share0
+    share1 := *action.Share1
+    // Maybe do this automically
+    state.SharesSet(result, core.Add(state.SharesGet(share0), state.SharesGet(share1)))
+    resp := &sproto.Response{}
+    rcode := action.GetRequestCode()
+    resp.RequestCode = &rcode
+    status := sproto.Response_OK
+    resp.Status = &status
+    client := int32(state.Client)
+    resp.Client = &client
+    fmt.Println("Done Adding")
+    return resp
+}
+
 func (state *ComputePeerState) DispatchAction (action *sproto.Action) (*sproto.Response) {
+    state.OutstandingRequests.Add(1)
+    defer state.OutstandingRequests.Done()
     fmt.Println("Dispatching action")
     switch *action.Action {
         case sproto.Action_Set:
             fmt.Println("Dispatching SET")
             return state.SetValue(action)
+        case sproto.Action_Add:
+            fmt.Println("Dispatching ADD")
+            return state.Add(action)
+        case sproto.Action_Retrieve:
+            fmt.Println("Retrieving value")
+            return state.GetValue(action)
         default:
             fmt.Println("Unimplemented action")
             return nil
@@ -64,6 +131,17 @@ func (state *ComputePeerState) CoordMsg (msg [][]byte, q chan int) {
         return
     }
     state.CoordChannel.Out() <- resp
+}
+
+func (state *ComputePeerState) SubMsg (msg [][]byte, q chan int) {
+    fmt.Println("Received message from coordination channel")
+    action := MsgToAction(msg)
+    fmt.Println("Converted to action")
+    if action == nil {
+        q <- 1
+        return
+    }
+    go state.DispatchAction(action)
 }
 
 func EventLoop (config *string, client int, q chan int) {
@@ -115,8 +193,8 @@ func EventLoop (config *string, client int, q chan int) {
     for true {
         fmt.Println("Starting to wait")
         select {
-            case <- state.SubChannel.In():
-                fmt.Println("Received message from subscription channel")
+            case msg := <- state.SubChannel.In():
+                state.SubMsg(msg, q) 
             case msg := <- state.CoordChannel.In():
                 state.CoordMsg(msg, q)
             case err = <- state.SubChannel.Errors():

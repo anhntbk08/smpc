@@ -185,8 +185,9 @@ func (this *Action) GetValue() int64 {
 
 type Response struct {
 	RequestCode      *int64           `protobuf:"varint,1,req,name=request_code" json:"request_code,omitempty"`
-	Status           *Response_Status `protobuf:"varint,2,req,name=status,enum=proto.Response_Status" json:"status,omitempty"`
-	Share            *int64           `protobuf:"varint,3,opt,name=share" json:"share,omitempty"`
+	Client           *int32           `protobuf:"varint,2,req,name=client" json:"client,omitempty"`
+	Status           *Response_Status `protobuf:"varint,3,req,name=status,enum=proto.Response_Status" json:"status,omitempty"`
+	Share            *int64           `protobuf:"varint,4,opt,name=share" json:"share,omitempty"`
 	XXX_unrecognized []byte           `json:"-"`
 }
 
@@ -197,6 +198,13 @@ func (*Response) ProtoMessage()       {}
 func (this *Response) GetRequestCode() int64 {
 	if this != nil && this.RequestCode != nil {
 		return *this.RequestCode
+	}
+	return 0
+}
+
+func (this *Response) GetClient() int32 {
+	if this != nil && this.Client != nil {
+		return *this.Client
 	}
 	return 0
 }

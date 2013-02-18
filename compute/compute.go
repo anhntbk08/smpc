@@ -14,29 +14,43 @@ type ComputePeerState struct {
     SubChannel *zmq.Channels
     CoordChannel *zmq.Channels
     Shares map[string] int64
+    HasShare map[string] bool
     ShareLock sync.RWMutex
-    OutstandingRequests sync.WaitGroup
     Client int
+}
 
+const INITIAL_MAP_CAPACITY int = 1000
+
+func MakeComputePeerState (client int) (*ComputePeerState) {
+    state := &ComputePeerState{}
+    state.Client = client
+    state.Shares = make(map[string] int64, INITIAL_MAP_CAPACITY)
+    state.HasShare = make(map[string] bool, INITIAL_MAP_CAPACITY)
+    return state
 }
 
 const BUFFER_SIZE int = 10
 
-func (state *ComputePeerState) SharesGet (share string) (int64) {
+func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     state.ShareLock.RLock()
     defer state.ShareLock.RUnlock()
-    return state.Shares[share]
+    val := state.Shares[share]
+    has := state.HasShare[share]
+    return val, has
 }
 
 func (state *ComputePeerState) SharesSet (share string, value int64) {
+    fmt.Println("SharesSet called, locking")
     state.ShareLock.Lock()
     defer state.ShareLock.Unlock()
+    fmt.Println("SharesSet called, locked")
     state.Shares[share] = value
+    fmt.Printf("Set %v to %v", share, value)
+    state.HasShare[share] = true
+    fmt.Printf("Set %v to %v", share, true)
 }
 
 func (state *ComputePeerState) DispatchAction (action *sproto.Action) (*sproto.Response) {
-    state.OutstandingRequests.Add(1)
-    defer state.OutstandingRequests.Done()
     fmt.Println("Dispatching action")
     switch *action.Action {
         case sproto.Action_Set:
@@ -55,7 +69,7 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action) (*sproto.R
     return nil
 }
 
-func (state *ComputePeerState) CoordMsg (msg [][]byte, q chan int) {
+func (state *ComputePeerState) ActionMsg (msg [][]byte, q chan int) {
     fmt.Println("Received message from coordination channel")
     action := MsgToAction(msg)
     fmt.Println("Converted to action")
@@ -72,7 +86,7 @@ func (state *ComputePeerState) CoordMsg (msg [][]byte, q chan int) {
     state.CoordChannel.Out() <- resp
 }
 
-func (state *ComputePeerState) SubMsg (msg [][]byte, q chan int) {
+/* func (state *ComputePeerState) SubMsg (msg [][]byte, q chan int) {
     fmt.Println("Received message from coordination channel")
     action := MsgToAction(msg)
     fmt.Println("Converted to action")
@@ -82,18 +96,16 @@ func (state *ComputePeerState) SubMsg (msg [][]byte, q chan int) {
     }
     go state.DispatchAction(action)
 }
-
+ */
 func EventLoop (config *string, client int, q chan int) {
     configStruct := ParseConfig(config, q) 
+    state := MakeComputePeerState(client) 
     // Create the 0MQ context
     ctx, err := zmq.NewContext()
     if err != nil {
         fmt.Println("Error creating 0mq context: ", err)
         q <- 1
     }
-    state := &ComputePeerState{}
-    state.Client = client
-    state.Shares = make(map[string] int64, 1000)
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
     state.SubSock, err = ctx.Socket(zmq.Sub)
     if err != nil {
@@ -133,9 +145,9 @@ func EventLoop (config *string, client int, q chan int) {
         fmt.Println("Starting to wait")
         select {
             case msg := <- state.SubChannel.In():
-                state.SubMsg(msg, q) 
+                state.ActionMsg(msg, q) 
             case msg := <- state.CoordChannel.In():
-                state.CoordMsg(msg, q)
+                state.ActionMsg(msg, q)
             case err = <- state.SubChannel.Errors():
                 fmt.Println("Error in SubChannel", err)
                 q <- 1

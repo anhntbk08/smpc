@@ -11,8 +11,12 @@ import (
 type ComputePeerState struct {
     SubSock *zmq.Socket
     CoordSock *zmq.Socket
+    PeerInSock *zmq.Socket
+    PeerOutSocks map[int] *zmq.Socket
     SubChannel *zmq.Channels
     CoordChannel *zmq.Channels
+    PeerInChannel *zmq.Channels
+    PeerOutChannels map[int] *zmq.Channels
     Shares map[string] int64
     HasShare map[string] bool
     ShareLock sync.RWMutex
@@ -50,53 +54,44 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     fmt.Printf("Set %v to %v", share, true)
 }
 
-func (state *ComputePeerState) DispatchAction (action *sproto.Action) (*sproto.Response) {
+func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [][]byte) {
     fmt.Println("Dispatching action")
+    var resp *sproto.Response
     switch *action.Action {
         case sproto.Action_Set:
             fmt.Println("Dispatching SET")
-            return state.SetValue(action)
+            resp = state.SetValue(action)
         case sproto.Action_Add:
             fmt.Println("Dispatching ADD")
-            return state.Add(action)
+            resp = state.Add(action)
         case sproto.Action_Retrieve:
             fmt.Println("Retrieving value")
-            return state.GetValue(action)
+            resp = state.GetValue(action)
         default:
             fmt.Println("Unimplemented action")
-            return nil
+            resp = state.DefaultAction(action)
     }
-    return nil
-}
-
-func (state *ComputePeerState) ActionMsg (msg [][]byte, q chan int) {
-    fmt.Println("Received message from coordination channel")
-    action := MsgToAction(msg)
-    fmt.Println("Converted to action")
-    if action == nil {
-        q <- 1
-        return
-    }
-    resp :=  ResponseToMsg(state.DispatchAction(action))
-    fmt.Println("Sending response, ", len(resp))
+    respB := ResponseToMsg(resp)
     if resp == nil {
-        q <- 1
-        return
+        panic ("Malformed response")
     }
-    state.CoordChannel.Out() <- resp
+    r <- respB
 }
 
-/* func (state *ComputePeerState) SubMsg (msg [][]byte, q chan int) {
+func (state *ComputePeerState) ActionMsg (msg [][]byte) {
     fmt.Println("Received message from coordination channel")
     action := MsgToAction(msg)
     fmt.Println("Converted to action")
     if action == nil {
-        q <- 1
-        return
+        panic ("Malformed action")
     }
-    go state.DispatchAction(action)
+    go state.DispatchAction(action, state.CoordChannel.Out())
 }
- */
+
+func (state *ComputePeerState) PeerMsg (msg [][] byte) {
+
+}
+
 func EventLoop (config *string, client int, q chan int) {
     configStruct := ParseConfig(config, q) 
     state := MakeComputePeerState(client) 
@@ -128,6 +123,35 @@ func EventLoop (config *string, client int, q chan int) {
         fmt.Println("Error connecting  ", err)
         q <- 1
     }
+    state.PeerInSock, err = ctx.Socket(zmq.Router)
+    if err != nil {
+        fmt.Println("Error creating peer router socket: ", err)
+        q <- 1
+    }
+    err = state.PeerInSock.Bind(configStruct.Clients[client]) // Set up something to listen to peers
+    if err != nil {
+        fmt.Println("Error binding peer router socket")
+        q <- 1
+    }
+    state.PeerOutSocks = make(map[int] *zmq.Socket, len(configStruct.Clients))
+    state.PeerOutChannels = make(map[int] *zmq.Channels, len(configStruct.Clients))
+    for index, value := range configStruct.Clients {
+        if index != client {
+            state.PeerOutSocks[index], err= ctx.Socket(zmq.Dealer)
+            if err != nil {
+                fmt.Println("Error creating dealer socket: ", err)
+                q <- 1
+                return
+            }
+            err  = state.PeerOutSocks[index].Connect(value)
+            if err != nil {
+                fmt.Println("Error connection ", err)
+                q <- 1
+                return
+            }
+            state.PeerOutChannels[index] = state.PeerOutSocks[index].ChannelsBuffer(BUFFER_SIZE)
+        }
+    }
     state.Sync(q)
     state.SubSock.Subscribe([]byte("CMD"))
     fmt.Println("Receiving")
@@ -135,6 +159,7 @@ func EventLoop (config *string, client int, q chan int) {
     // not thread safe. Hence first sync, then get channels
     state.SubChannel = state.SubSock.ChannelsBuffer(BUFFER_SIZE)
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE)
+    state.PeerInChannel = state.PeerInSock.ChannelsBuffer(BUFFER_SIZE)
     defer func() {
         state.SubSock.Close()
         state.CoordSock.Close()
@@ -145,9 +170,11 @@ func EventLoop (config *string, client int, q chan int) {
         fmt.Println("Starting to wait")
         select {
             case msg := <- state.SubChannel.In():
-                state.ActionMsg(msg, q) 
+                state.ActionMsg(msg) 
             case msg := <- state.CoordChannel.In():
-                state.ActionMsg(msg, q)
+                state.ActionMsg(msg)
+            case msg := <- state.PeerInChannel.In():
+                state.PeerMsg(msg)                
             case err = <- state.SubChannel.Errors():
                 fmt.Println("Error in SubChannel", err)
                 q <- 1

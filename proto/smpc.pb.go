@@ -225,7 +225,7 @@ func (this *Response) GetShare() int64 {
 
 type IntermediateData struct {
 	RequestCode      *int64 `protobuf:"varint,1,req,name=request_code" json:"request_code,omitempty"`
-	Node             *int32 `protobuf:"varint,2,req,name=node" json:"node,omitempty"`
+	Client           *int32 `protobuf:"varint,2,req,name=client" json:"client,omitempty"`
 	Step             *int32 `protobuf:"varint,3,req,name=step" json:"step,omitempty"`
 	Data             *int64 `protobuf:"varint,4,req,name=data" json:"data,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
@@ -242,9 +242,9 @@ func (this *IntermediateData) GetRequestCode() int64 {
 	return 0
 }
 
-func (this *IntermediateData) GetNode() int32 {
-	if this != nil && this.Node != nil {
-		return *this.Node
+func (this *IntermediateData) GetClient() int32 {
+	if this != nil && this.Client != nil {
+		return *this.Client
 	}
 	return 0
 }

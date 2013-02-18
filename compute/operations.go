@@ -61,7 +61,6 @@ func (state *ComputePeerState) Add (action *sproto.Action) (*sproto.Response) {
     share0val, hasShare0val := state.SharesGet(share0)
     share1val, hasShare1val := state.SharesGet(share1)
     if hasShare0val && hasShare1val {
-        // Maybe do this automically
         state.SharesSet(result, core.Add(share0val, share1val))
         resp := &sproto.Response{}
         rcode := action.GetRequestCode()
@@ -76,3 +75,12 @@ func (state *ComputePeerState) Add (action *sproto.Action) (*sproto.Response) {
     return state.failResponse (action.GetRequestCode())
 }
 
+func (state *ComputePeerState) DefaultAction (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Illegal action")
+    return state.failResponse(action.GetRequestCode())
+}
+
+// Multiply two shares
+/* func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
+
+}*/

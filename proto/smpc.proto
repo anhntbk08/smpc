@@ -32,7 +32,7 @@ message IntermediateData {
         Mul = 0;
     }
     required int64 request_code = 1;
-    required int32 node = 2;
+    required int32 client = 2;
     required int32 step = 3;
     required int64 data = 4;
 }

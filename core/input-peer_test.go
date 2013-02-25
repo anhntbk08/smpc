@@ -68,7 +68,8 @@ func Multiply (a int64, b int64) (int64) {
       }
    }
    for i := 0; i < len(mshares); i++ {
-     rshares[i] = ReconstructSecret(&mshares[i], &[]bool{true, true, true}, 3)
+     //rshares[i] = ReconstructSecret(&mshares[i], &[]bool{true, true, true}, 3)
+     rshares[i] = MultCombineShares(&mshares[i], 3)
    }
    return ReconstructSecret(&rshares, &[]bool{true, true, true}, 3)
 }

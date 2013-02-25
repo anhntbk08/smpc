@@ -37,3 +37,24 @@ func ResponseToMsg (resp *sproto.Response) ([][]byte) {
     return msg
 }
 
+func IntermediateToMsg (i *sproto.IntermediateData) ([][]byte) {
+    msg := make([][]byte, 2)
+    var err error
+    msg[0] = []byte("")
+    msg[1], err = proto.Marshal(i)
+    if err != nil {
+        fmt.Println("Error marshalling", err)
+        return nil
+    }
+    return msg
+}
+
+func MsgToIntermediate (msg [][]byte) (*sproto.IntermediateData) {
+    intermediate := &sproto.IntermediateData{}
+    // msg[1] since Router sockets add an additional header
+    err := proto.Unmarshal(msg[2], intermediate)
+    if err != nil {
+        return nil
+    }
+    return intermediate
+}

@@ -21,19 +21,65 @@ type ComputePeerState struct {
     HasShare map[string] bool
     ShareLock sync.RWMutex
     Client int
+    NumClients int
+    ChannelMap map[int64] chan *sproto.IntermediateData 
+    ChannelLock sync.Mutex
+    SquelchTraffic map[int64] bool
 }
 
 const INITIAL_MAP_CAPACITY int = 1000
 
-func MakeComputePeerState (client int) (*ComputePeerState) {
+func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     state := &ComputePeerState{}
     state.Client = client
     state.Shares = make(map[string] int64, INITIAL_MAP_CAPACITY)
     state.HasShare = make(map[string] bool, INITIAL_MAP_CAPACITY)
+    state.NumClients = numClients
+    state.PeerOutSocks = make(map[int] *zmq.Socket, numClients)
+    state.PeerOutChannels = make(map[int] *zmq.Channels, numClients)
+    state.ChannelMap = make(map[int64] chan *sproto.IntermediateData, INITIAL_MAP_CAPACITY)
+    state.SquelchTraffic = make(map[int64] bool, INITIAL_MAP_CAPACITY)
     return state
 }
 
 const BUFFER_SIZE int = 10
+
+func (state *ComputePeerState) UnregisterChannelForRequest (request int64) {
+    state.ChannelLock.Lock()
+    defer state.ChannelLock.Unlock()
+    state.SquelchTraffic[request] = true
+    delete(state.ChannelMap, request)
+}
+
+func (state *ComputePeerState) ChannelForRequest (request int64) (chan *sproto.IntermediateData) {
+    state.ChannelLock.Lock()
+    defer state.ChannelLock.Unlock()
+    ch := state.ChannelMap[request]
+    if ch == nil {
+        state.ChannelMap[request] = make(chan *sproto.IntermediateData, 10)
+        ch = state.ChannelMap[request]
+    }
+    return ch
+}
+
+func (state *ComputePeerState) ReceiveFromPeers () {
+    for {
+        fmt.Printf("Core is now waiting for messages\n")
+        select {
+            case msg := <- state.PeerInChannel.In():
+                fmt.Printf("Received message at core\n")
+                intermediate := MsgToIntermediate(msg)
+                fmt.Printf("Core received %d->%d request=%d\n", *intermediate.Client, state.Client, *intermediate.RequestCode)
+                if intermediate == nil {
+                    panic ("Could not read intermediate message")
+                }
+                ch := state.ChannelForRequest(*intermediate.RequestCode)
+                if !state.SquelchTraffic[*intermediate.RequestCode] {
+                    ch <- intermediate
+                }
+        }
+    }
+}
 
 func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     state.ShareLock.RLock()
@@ -49,9 +95,9 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     defer state.ShareLock.Unlock()
     fmt.Println("SharesSet called, locked")
     state.Shares[share] = value
-    fmt.Printf("Set %v to %v", share, value)
+    fmt.Printf("Set %v to %v\n", share, value)
     state.HasShare[share] = true
-    fmt.Printf("Set %v to %v", share, true)
+    fmt.Printf("Set %v to %v\n", share, true)
 }
 
 func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [][]byte) {
@@ -67,6 +113,10 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
         case sproto.Action_Retrieve:
             fmt.Println("Retrieving value")
             resp = state.GetValue(action)
+        case sproto.Action_Mul:
+            fmt.Println("Dispatching mul")
+            resp = state.Mul(action)
+            fmt.Println("Return from mul")
         default:
             fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)
@@ -88,13 +138,9 @@ func (state *ComputePeerState) ActionMsg (msg [][]byte) {
     go state.DispatchAction(action, state.CoordChannel.Out())
 }
 
-func (state *ComputePeerState) PeerMsg (msg [][] byte) {
-
-}
-
 func EventLoop (config *string, client int, q chan int) {
     configStruct := ParseConfig(config, q) 
-    state := MakeComputePeerState(client) 
+    state := MakeComputePeerState(client, len(configStruct.Clients)) 
     // Create the 0MQ context
     ctx, err := zmq.NewContext()
     if err != nil {
@@ -133,8 +179,6 @@ func EventLoop (config *string, client int, q chan int) {
         fmt.Println("Error binding peer router socket")
         q <- 1
     }
-    state.PeerOutSocks = make(map[int] *zmq.Socket, len(configStruct.Clients))
-    state.PeerOutChannels = make(map[int] *zmq.Channels, len(configStruct.Clients))
     for index, value := range configStruct.Clients {
         if index != client {
             state.PeerOutSocks[index], err= ctx.Socket(zmq.Dealer)
@@ -152,14 +196,16 @@ func EventLoop (config *string, client int, q chan int) {
             state.PeerOutChannels[index] = state.PeerOutSocks[index].ChannelsBuffer(BUFFER_SIZE)
         }
     }
+    state.PeerInChannel = state.PeerInSock.Channels()
+    go state.ReceiveFromPeers()
     state.Sync(q)
+    state.IntermediateSync(q)
     state.SubSock.Subscribe([]byte("CMD"))
     fmt.Println("Receiving")
     // We cannot create channels before finalizing the set of subscriptions, since sockets are
     // not thread safe. Hence first sync, then get channels
     state.SubChannel = state.SubSock.ChannelsBuffer(BUFFER_SIZE)
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE)
-    state.PeerInChannel = state.PeerInSock.ChannelsBuffer(BUFFER_SIZE)
     defer func() {
         state.SubSock.Close()
         state.CoordSock.Close()
@@ -173,8 +219,6 @@ func EventLoop (config *string, client int, q chan int) {
                 state.ActionMsg(msg) 
             case msg := <- state.CoordChannel.In():
                 state.ActionMsg(msg)
-            case msg := <- state.PeerInChannel.In():
-                state.PeerMsg(msg)                
             case err = <- state.SubChannel.Errors():
                 fmt.Println("Error in SubChannel", err)
                 q <- 1

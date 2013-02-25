@@ -30,9 +30,12 @@ message Response {
 message IntermediateData {
     enum DataType {
         Mul = 0;
+        SyncBeacon = 1;
+        SyncBeaconReceived = 2;
     }
-    required int64 request_code = 1;
-    required int32 client = 2;
-    required int32 step = 3;
-    required int64 data = 4;
+    required DataType type = 1;
+    required int64 request_code = 2;
+    required int32 client = 3;
+    optional int32 step = 4;
+    optional int64 data = 5;
 }

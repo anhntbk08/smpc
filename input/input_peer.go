@@ -27,6 +27,7 @@ const INITIAL_MAP_CONSTANT int = 1000
 func (state *InputPeerState) InitPeerState (clients int) {
     state.ComputeSlaves = make([][]byte, clients)
     state.ChannelMap = make(map[int64] chan *sproto.Response, 1000)
+    state.RequestID = 1
 }
 
 func (state *InputPeerState) GetChannelForRequest (request int64) (chan *sproto.Response) {
@@ -47,16 +48,14 @@ func (state *InputPeerState) DelChannelForRequest (request int64) {
     delete(state.ChannelMap, request)
 }
 
-func (state *InputPeerState) MessageLoop (q chan int) {
+func (state *InputPeerState) MessageLoop () {
     for {
         select {
             case msg := <- state.CoordChannel.In():
                response := &sproto.Response{}
                err := proto.Unmarshal(msg[2], response)
                if err != nil {
-                   fmt.Println("Error unmarshalling response", err) 
-                   q <- 1
-                   return
+                   panic(fmt.Sprintf("Error unmarshalling response %v\n", err))
                }
                c := state.GetChannelForRequest(*response.RequestCode)
                if c == nil {
@@ -112,7 +111,7 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE) 
     state.PubChannel = state.PubSock.ChannelsBuffer(BUFFER_SIZE)
     state.Sync(q)
-    go state.MessageLoop(q) 
+    go state.MessageLoop() 
     ready <- true
     // Handle errors from here on out
     select {
@@ -139,12 +138,18 @@ func circuit (state *InputPeerState, end_channel chan int) {
     <- c
     c = state.Add("delicious", "food", "pizza", end_channel)
     <- c
+    fmt.Println("Running mul")
+    c = state.Mul("dd", "delicious", "pizza", end_channel)
     c1 := state.GetValue("delicious", end_channel)
     val := <- c1
     fmt.Printf("delicious = %d\n", val)
     c1 = state.GetValue("food", end_channel)
     val = <-c1
     fmt.Printf("food = %d\n", val)
+    <- c
+    c1 = state.GetValue("dd", end_channel)
+    val = <- c1
+    fmt.Printf("dd = %d\n", val)
 }
 
 func main() {

@@ -26,14 +26,14 @@ func SmpcMultShares (a int64, b int64, nshares int32, prime int64) ([]int64) {
    return shares
 }
 
-func MultCombineShares (shares []int64, nshares int32) (int64) {
+func MultCombineShares (shares *[]int64, nshares int32) (int64) {
    return SmpcMultCombineShares(shares, nshares, LargePrime)
 }
 
-func SmpcMultCombineShares (shares []int64, nshares int32, prime int64) (int64) {
+func SmpcMultCombineShares (shares *[]int64, nshares int32, prime int64) (int64) {
   hasShare := make([]bool, nshares)
   for i := int32(0); i < nshares; i++ {
     hasShare[i] = true
   }
-  return Interpolate(&shares, &hasShare, nshares, prime)   
+  return Interpolate(shares, &hasShare, nshares, prime)   
 }

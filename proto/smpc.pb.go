@@ -97,14 +97,20 @@ func (x *Response_Status) UnmarshalJSON(data []byte) error {
 type IntermediateData_DataType int32
 
 const (
-	IntermediateData_Mul IntermediateData_DataType = 0
+	IntermediateData_Mul                IntermediateData_DataType = 0
+	IntermediateData_SyncBeacon         IntermediateData_DataType = 1
+	IntermediateData_SyncBeaconReceived IntermediateData_DataType = 2
 )
 
 var IntermediateData_DataType_name = map[int32]string{
 	0: "Mul",
+	1: "SyncBeacon",
+	2: "SyncBeaconReceived",
 }
 var IntermediateData_DataType_value = map[string]int32{
-	"Mul": 0,
+	"Mul":                0,
+	"SyncBeacon":         1,
+	"SyncBeaconReceived": 2,
 }
 
 func (x IntermediateData_DataType) Enum() *IntermediateData_DataType {
@@ -224,16 +230,24 @@ func (this *Response) GetShare() int64 {
 }
 
 type IntermediateData struct {
-	RequestCode      *int64 `protobuf:"varint,1,req,name=request_code" json:"request_code,omitempty"`
-	Client           *int32 `protobuf:"varint,2,req,name=client" json:"client,omitempty"`
-	Step             *int32 `protobuf:"varint,3,req,name=step" json:"step,omitempty"`
-	Data             *int64 `protobuf:"varint,4,req,name=data" json:"data,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
+	Type             *IntermediateData_DataType `protobuf:"varint,1,req,name=type,enum=proto.IntermediateData_DataType" json:"type,omitempty"`
+	RequestCode      *int64                     `protobuf:"varint,2,req,name=request_code" json:"request_code,omitempty"`
+	Client           *int32                     `protobuf:"varint,3,req,name=client" json:"client,omitempty"`
+	Step             *int32                     `protobuf:"varint,4,opt,name=step" json:"step,omitempty"`
+	Data             *int64                     `protobuf:"varint,5,opt,name=data" json:"data,omitempty"`
+	XXX_unrecognized []byte                     `json:"-"`
 }
 
 func (this *IntermediateData) Reset()         { *this = IntermediateData{} }
 func (this *IntermediateData) String() string { return proto1.CompactTextString(this) }
 func (*IntermediateData) ProtoMessage()       {}
+
+func (this *IntermediateData) GetType() IntermediateData_DataType {
+	if this != nil && this.Type != nil {
+		return *this.Type
+	}
+	return 0
+}
 
 func (this *IntermediateData) GetRequestCode() int64 {
 	if this != nil && this.RequestCode != nil {

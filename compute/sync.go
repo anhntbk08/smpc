@@ -1,8 +1,10 @@
 package main
 import (
         //"github.com/apanda/smpc/core"
+        "time"
         "fmt"
         "encoding/binary"
+        sproto "github.com/apanda/smpc/proto"
         )
 func (state *ComputePeerState) Sync (q chan int) {
     // Subscribe to HELO messages
@@ -30,4 +32,61 @@ func (state *ComputePeerState) Sync (q chan int) {
         fmt.Println("Error sending on coordination socket", err)
         q <- 1
     }
+}
+
+func (state *ComputePeerState) IntermediateSync (q chan int) {
+    beaconReceived := make([]bool, state.NumClients)
+    clientSeen := make([]bool, state.NumClients)
+    beaconReceived[state.Client] = true
+    clientSeen[state.Client] = true
+    
+    beacon := &sproto.IntermediateData{}
+    rcode := int64(0)
+    beacon.RequestCode = &rcode
+    client := int32(state.Client)
+    beacon.Client = &client
+    t := sproto.IntermediateData_SyncBeacon
+    beacon.Type  = &t
+
+    beaconRcvd := &sproto.IntermediateData{}
+    beaconRcvd.RequestCode = &rcode
+    beaconRcvd.Client = &client
+    t2 := sproto.IntermediateData_SyncBeaconReceived
+    beaconRcvd.Type  = &t2
+    done := false
+    fmt.Println("SYNC Entering intermediate sync")
+    for !done {
+        for i, r := range beaconReceived {
+            if !r {
+                msg := IntermediateToMsg(beacon)
+                state.PeerOutChannels[i].Out() <- msg
+            }
+        }
+        sleep := make(chan bool, 1)
+        go func() {
+            time.Sleep(10 * time.Millisecond)
+            sleep <- true
+            
+        }()
+        ch := state.ChannelForRequest(rcode) 
+        select {
+            case rcvd := <- ch :
+                clientSeen[*rcvd.Client] = true
+                if *rcvd.Type ==  sproto.IntermediateData_SyncBeaconReceived {
+                    beaconReceived[*rcvd.Client] = true
+                    fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
+                } else {
+                    state.PeerOutChannels[int(*rcvd.Client)].Out() <- IntermediateToMsg(beaconRcvd)
+                    fmt.Printf("SYNC %d -> %d beacon\n", *rcvd.Client, state.Client)
+                }
+            case <- sleep:
+        }
+        done = true
+        for _, v := range beaconReceived {
+            done = done && v
+        }
+    }
+    
+    state.UnregisterChannelForRequest(rcode)
+    fmt.Println("SYNC Exiting intermediate sync")
 }

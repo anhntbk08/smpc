@@ -6,6 +6,7 @@ message Action {
       Mul = 1;
       Set = 2;
       Retrieve = 3;
+      Cmp = 4;
   }
   required int64 request_code = 1;
   required Action action = 2;
@@ -36,6 +37,6 @@ message IntermediateData {
     required DataType type = 1;
     required int64 request_code = 2;
     required int32 client = 3;
-    optional int32 step = 4;
+    required int32 step = 4;
     optional int64 data = 5;
 }

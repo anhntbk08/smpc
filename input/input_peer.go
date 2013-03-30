@@ -132,14 +132,14 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
 }
 
 func circuit (state *InputPeerState, end_channel chan int) {
-    c := state.SetValue("food", int64(5), end_channel)
+    c := state.SetValue("food", int64(1), end_channel)
     <- c
-    c = state.SetValue("pizza", int64(6), end_channel)
+    c = state.SetValue("pizza", int64(1), end_channel)
     <- c
     c = state.Add("delicious", "food", "pizza", end_channel)
     <- c
     fmt.Println("Running mul")
-    c = state.Mul("dd", "delicious", "pizza", end_channel)
+    c = state.Mul("dd", "delicious", "food", end_channel)
     c1 := state.GetValue("delicious", end_channel)
     val := <- c1
     fmt.Printf("delicious = %d\n", val)
@@ -150,6 +150,47 @@ func circuit (state *InputPeerState, end_channel chan int) {
     c1 = state.GetValue("dd", end_channel)
     val = <- c1
     fmt.Printf("dd = %d\n", val)
+    c = state.Mul("dd", "dd", "dd", end_channel)
+    <- c
+    c1 = state.GetValue("dd", end_channel)
+    val = <- c1
+    fmt.Printf("dd = %d\n", val)
+    c = state.Mul("dd", "dd", "dd", end_channel)
+    <- c
+    c = state.Mul("dd", "dd", "dd", end_channel)
+    <- c
+    //c = state.Mul("dd", "dd", "dd", end_channel)
+    //<- c
+    c = state.Mul("dd", "dd", "dd", end_channel)
+    <- c
+    c1 = state.GetValue("dd", end_channel)
+    val = <- c1
+    fmt.Printf("dd = %d\n", val)
+
+    c = state.SetValue("a", int64(100), end_channel)
+    <- c
+    c = state.SetValue("b", int64(100), end_channel)
+    <- c
+    c = state.SetValue("c", int64(20), end_channel)
+    <- c
+    c = state.SetValue("d", int64(0), end_channel)
+    <- c
+    c = state.Cmp("avb", "a", "b", end_channel)
+    c2 := state.Cmp("cvd", "c", "d", end_channel)
+    c3 := state.Cmp("avd", "a", "d", end_channel)
+    <- c3
+    <- c
+    <- c2
+    c1 = state.GetValue("avb", end_channel)
+    val = <- c1
+    fmt.Printf("Comparison a == b (should be 1) = %d\n", val)
+    c1 = state.GetValue("cvd", end_channel)
+    val = <- c1
+    fmt.Printf("c == d? (should be 0) = %d\n", val)
+    c1 = state.GetValue("avd", end_channel)
+    val = <- c1
+    fmt.Printf("a == d? (should be 0) = %d\n", val)
+    end_channel <- 0
 }
 
 func main() {

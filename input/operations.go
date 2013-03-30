@@ -184,3 +184,37 @@ func (state *InputPeerState) Mul (result string, left string, right string, q ch
     return done
 }
 
+func (state *InputPeerState) Cmp (result string, left string, right string, q chan int) (chan bool){
+    done := make(chan bool, 1) //Buffer to avoid hangs
+    go func() {
+        requestID := atomic.AddInt64(&state.RequestID, 1) 
+        msg := make([][]byte, 2)
+        msg[0] = []byte("CMD")
+        action := &sproto.Action{}
+        t := sproto.Action_Cmp
+        action.Action = &t
+        action.Result = &result
+        action.RequestCode = &requestID
+        action.Share0 = &left
+        action.Share1 = &right
+        var err error
+        msg[1], err = proto.Marshal(action)
+        if err != nil {
+            fmt.Println("Error marshaling ADD message: ", err)
+            q <- 1
+        }
+        state.PubChannel.Out() <- msg
+        received := 0
+        status := make(chan *sproto.Response, 1)
+        state.SetChannelForRequest(requestID, status)
+        for received < len(state.ComputeSlaves) {
+            <- status
+            received += 1
+            fmt.Println("Returned cmp return")
+        }
+        state.DelChannelForRequest(requestID)
+        done <- true
+        return
+    }()
+    return done
+}

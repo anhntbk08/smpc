@@ -42,7 +42,9 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     
     beacon := &sproto.IntermediateData{}
     rcode := int64(0)
+    step := int32(1)
     beacon.RequestCode = &rcode
+    beacon.Step = &step
     client := int32(state.Client)
     beacon.Client = &client
     t := sproto.IntermediateData_SyncBeacon
@@ -50,6 +52,7 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
 
     beaconRcvd := &sproto.IntermediateData{}
     beaconRcvd.RequestCode = &rcode
+    beaconRcvd.Step = &step
     beaconRcvd.Client = &client
     t2 := sproto.IntermediateData_SyncBeaconReceived
     beaconRcvd.Type  = &t2
@@ -68,7 +71,7 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
             sleep <- true
             
         }()
-        ch := state.ChannelForRequest(rcode) 
+        ch := state.ChannelForRequest(*MakeRequestStep(rcode,step))
         select {
             case rcvd := <- ch :
                 clientSeen[*rcvd.Client] = true
@@ -87,6 +90,6 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
         }
     }
     
-    state.UnregisterChannelForRequest(rcode)
+    state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
     fmt.Println("SYNC Exiting intermediate sync")
 }

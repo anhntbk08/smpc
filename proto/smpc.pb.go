@@ -20,6 +20,7 @@ const (
 	Action_Mul      Action_Action = 1
 	Action_Set      Action_Action = 2
 	Action_Retrieve Action_Action = 3
+	Action_Cmp      Action_Action = 4
 )
 
 var Action_Action_name = map[int32]string{
@@ -27,12 +28,14 @@ var Action_Action_name = map[int32]string{
 	1: "Mul",
 	2: "Set",
 	3: "Retrieve",
+	4: "Cmp",
 }
 var Action_Action_value = map[string]int32{
 	"Add":      0,
 	"Mul":      1,
 	"Set":      2,
 	"Retrieve": 3,
+	"Cmp":      4,
 }
 
 func (x Action_Action) Enum() *Action_Action {
@@ -233,7 +236,7 @@ type IntermediateData struct {
 	Type             *IntermediateData_DataType `protobuf:"varint,1,req,name=type,enum=proto.IntermediateData_DataType" json:"type,omitempty"`
 	RequestCode      *int64                     `protobuf:"varint,2,req,name=request_code" json:"request_code,omitempty"`
 	Client           *int32                     `protobuf:"varint,3,req,name=client" json:"client,omitempty"`
-	Step             *int32                     `protobuf:"varint,4,opt,name=step" json:"step,omitempty"`
+	Step             *int32                     `protobuf:"varint,4,req,name=step" json:"step,omitempty"`
 	Data             *int64                     `protobuf:"varint,5,opt,name=data" json:"data,omitempty"`
 	XXX_unrecognized []byte                     `json:"-"`
 }

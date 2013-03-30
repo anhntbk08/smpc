@@ -8,6 +8,18 @@ import (
         sproto "github.com/apanda/smpc/proto"
         "sync"
         )
+type RequestStepPair struct {
+    Request int64
+    Step int32
+}
+
+func MakeRequestStep (req int64, step int32) (ret *RequestStepPair) {
+    ret = &RequestStepPair{}
+    ret.Request = req
+    ret.Step = step
+    return ret
+}
+
 type ComputePeerState struct {
     SubSock *zmq.Socket
     CoordSock *zmq.Socket
@@ -22,12 +34,13 @@ type ComputePeerState struct {
     ShareLock sync.RWMutex
     Client int
     NumClients int
-    ChannelMap map[int64] chan *sproto.IntermediateData 
+    ChannelMap map[RequestStepPair] chan *sproto.IntermediateData 
     ChannelLock sync.Mutex
-    SquelchTraffic map[int64] bool
+    SquelchTraffic map[RequestStepPair] bool
 }
 
 const INITIAL_MAP_CAPACITY int = 1000
+const INITIAL_CHANNEL_CAPACITY int = 100
 
 func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     state := &ComputePeerState{}
@@ -37,26 +50,26 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     state.NumClients = numClients
     state.PeerOutSocks = make(map[int] *zmq.Socket, numClients)
     state.PeerOutChannels = make(map[int] *zmq.Channels, numClients)
-    state.ChannelMap = make(map[int64] chan *sproto.IntermediateData, INITIAL_MAP_CAPACITY)
-    state.SquelchTraffic = make(map[int64] bool, INITIAL_MAP_CAPACITY)
+    state.ChannelMap = make(map[RequestStepPair] chan *sproto.IntermediateData, INITIAL_MAP_CAPACITY)
+    state.SquelchTraffic = make(map[RequestStepPair] bool, INITIAL_MAP_CAPACITY)
     return state
 }
 
 const BUFFER_SIZE int = 10
 
-func (state *ComputePeerState) UnregisterChannelForRequest (request int64) {
+func (state *ComputePeerState) UnregisterChannelForRequest (request RequestStepPair) {
     state.ChannelLock.Lock()
     defer state.ChannelLock.Unlock()
     state.SquelchTraffic[request] = true
     delete(state.ChannelMap, request)
 }
 
-func (state *ComputePeerState) ChannelForRequest (request int64) (chan *sproto.IntermediateData) {
+func (state *ComputePeerState) ChannelForRequest (request RequestStepPair) (chan *sproto.IntermediateData) {
     state.ChannelLock.Lock()
     defer state.ChannelLock.Unlock()
     ch := state.ChannelMap[request]
     if ch == nil {
-        state.ChannelMap[request] = make(chan *sproto.IntermediateData, 10)
+        state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
         ch = state.ChannelMap[request]
     }
     return ch
@@ -73,8 +86,9 @@ func (state *ComputePeerState) ReceiveFromPeers () {
                 if intermediate == nil {
                     panic ("Could not read intermediate message")
                 }
-                ch := state.ChannelForRequest(*intermediate.RequestCode)
-                if !state.SquelchTraffic[*intermediate.RequestCode] {
+                key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
+                if !state.SquelchTraffic[*key] {
+                    ch := state.ChannelForRequest(*key)
                     ch <- intermediate
                 }
         }
@@ -117,6 +131,10 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
             fmt.Println("Dispatching mul")
             resp = state.Mul(action)
             fmt.Println("Return from mul")
+        case sproto.Action_Cmp:
+            fmt.Println("Dispatching CMP")
+            resp = state.Cmp(action)
+            fmt.Println("Return from cmp")
         default:
             fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)

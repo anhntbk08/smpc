@@ -14,3 +14,14 @@ func Add (share1 int64, share2 int64) (int64) {
     return SmpcAdd(share1, share2, LargePrime)
 }
 
+func SmpcSub (share1 int64, share2 int64, prime int64) (int64) {
+    share1b := big.NewInt(share1)
+    share2b := big.NewInt(share2)
+    share1b.Sub(share1b, share2b)
+    share2b.Mod(share1b, big.NewInt(prime))
+    return share2b.Int64()
+}
+
+func Sub (share1 int64, share2 int64) (int64) {
+    return SmpcSub(share1, share2, LargePrime)
+}

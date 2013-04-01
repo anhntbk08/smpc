@@ -132,63 +132,63 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
 }
 
 func circuit (state *InputPeerState, end_channel chan int) {
-    c := state.SetValue("food", int64(1), end_channel)
-    <- c
-    c = state.SetValue("pizza", int64(1), end_channel)
-    <- c
-    c = state.Add("delicious", "food", "pizza", end_channel)
-    <- c
-    fmt.Println("Running mul")
-    c = state.Mul("dd", "delicious", "food", end_channel)
-    c1 := state.GetValue("delicious", end_channel)
-    val := <- c1
+    c1 := state.SetValue("food", int64(1), end_channel)
+    c2 := state.SetValue("pizza", int64(1), end_channel)
+    <- c1
+    <- c2
+    c3 := state.Add("delicious", "food", "pizza", end_channel)
+    <- c3
+    //fmt.Println("Running mul")
+    c4 := state.Mul("dd", "delicious", "food", end_channel)
+    c5 := state.GetValue("delicious", end_channel)
+    val := <- c5
     fmt.Printf("delicious = %d\n", val)
-    c1 = state.GetValue("food", end_channel)
-    val = <-c1
+    c6 := state.GetValue("food", end_channel)
+    val = <-c6
     fmt.Printf("food = %d\n", val)
-    <- c
-    c1 = state.GetValue("dd", end_channel)
-    val = <- c1
+    <- c4
+    c7 := state.GetValue("dd", end_channel)
+    val = <- c7
     fmt.Printf("dd = %d\n", val)
-    c = state.Mul("dd", "dd", "dd", end_channel)
-    <- c
-    c1 = state.GetValue("dd", end_channel)
-    val = <- c1
+    c8 := state.Mul("dd", "dd", "dd", end_channel)
+    <- c8
+    c9 := state.GetValue("dd", end_channel)
+    val = <- c9
     fmt.Printf("dd = %d\n", val)
-    c = state.Mul("dd", "dd", "dd", end_channel)
-    <- c
-    c = state.Mul("dd", "dd", "dd", end_channel)
-    <- c
+    c10 := state.Mul("dd", "dd", "dd", end_channel)
+    <- c10
+    c11 := state.Mul("dd", "dd", "dd", end_channel)
+    <- c11
     //c = state.Mul("dd", "dd", "dd", end_channel)
     //<- c
-    c = state.Mul("dd", "dd", "dd", end_channel)
-    <- c
-    c1 = state.GetValue("dd", end_channel)
-    val = <- c1
+    c12 := state.Mul("dd", "dd", "dd", end_channel)
+    <- c12
+    c13 := state.GetValue("dd", end_channel)
+    val = <- c13
     fmt.Printf("dd = %d\n", val)
 
-    c = state.SetValue("a", int64(100), end_channel)
-    <- c
-    c = state.SetValue("b", int64(100), end_channel)
-    <- c
-    c = state.SetValue("c", int64(20), end_channel)
-    <- c
-    c = state.SetValue("d", int64(0), end_channel)
-    <- c
-    c = state.Cmp("avb", "a", "b", end_channel)
-    c2 := state.Cmp("cvd", "c", "d", end_channel)
-    c3 := state.Cmp("avd", "a", "d", end_channel)
-    <- c3
-    <- c
-    <- c2
-    c1 = state.GetValue("avb", end_channel)
-    val = <- c1
+    c14 := state.SetValue("a", int64(100), end_channel)
+    c15 := state.SetValue("b", int64(100), end_channel)
+    c16 := state.SetValue("c", int64(20), end_channel)
+    c17 := state.SetValue("d", int64(0), end_channel)
+    <- c14
+    <- c15
+    <- c16
+    <- c17
+    c18 := state.Cmp("avb", "a", "b", end_channel)
+    c19 := state.Cmp("cvd", "c", "d", end_channel)
+    c20 := state.Cmp("avd", "a", "d", end_channel)
+    <- c18
+    <- c19
+    <- c20
+    c21 := state.GetValue("avb", end_channel)
+    c22 := state.GetValue("cvd", end_channel)
+    c23 := state.GetValue("avd", end_channel)
+    val = <- c21
     fmt.Printf("Comparison a == b (should be 1) = %d\n", val)
-    c1 = state.GetValue("cvd", end_channel)
-    val = <- c1
+    val = <- c22
     fmt.Printf("c == d? (should be 0) = %d\n", val)
-    c1 = state.GetValue("avd", end_channel)
-    val = <- c1
+    val = <- c23
     fmt.Printf("a == d? (should be 0) = %d\n", val)
     end_channel <- 0
 }

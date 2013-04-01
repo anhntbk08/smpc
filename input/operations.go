@@ -6,7 +6,7 @@ import (
         "code.google.com/p/goprotobuf/proto"
         "sync/atomic"
         )
-
+const ChannelSize int = 10
 /* Set value */
 func (state *InputPeerState) SetValue (name string, value int64, q chan int) (chan bool) {
     done := make(chan bool, 1) // Buffered so we can be done even if no one is listening
@@ -24,7 +24,7 @@ func (state *InputPeerState) SetValue (name string, value int64, q chan int) (ch
             action.Result = &name
             action.RequestCode = &requestID
             action.Value = &shares[index]
-            fmt.Printf("%s[%d] = %d\n", name, index, shares[index])
+            //fmt.Printf("%s[%d] = %d\n", name, index, shares[index])
             msg[2], err = proto.Marshal(action)
             if err != nil {
                 fmt.Println("Error marshaling SET message: ", err)
@@ -32,13 +32,13 @@ func (state *InputPeerState) SetValue (name string, value int64, q chan int) (ch
             }
             state.CoordChannel.Out() <- msg
         }
-        status := make(chan *sproto.Response, 1)
+        status := make(chan *sproto.Response, ChannelSize)
         state.SetChannelForRequest(requestID, status)
         received := 0
         for received < len(state.ComputeSlaves) {
-           fmt.Printf("Set value waiting for %d compute nodes\n", len(state.ComputeSlaves) - received)
+           //fmt.Printf("Set value waiting for %d compute nodes\n", len(state.ComputeSlaves) - received)
            response := <- status
-           fmt.Printf("Received message\n")
+           //fmt.Printf("Received message\n")
            if response.GetRequestCode() == requestID {
                received += 1
            } else {
@@ -46,8 +46,8 @@ func (state *InputPeerState) SetValue (name string, value int64, q chan int) (ch
            }
         }
         state.DelChannelForRequest(requestID)
-        fmt.Println("Done setting")
-        done <- true
+        //fmt.Println("Done setting")
+        close(done)
     }()
     return done
 }
@@ -77,7 +77,7 @@ func (state *InputPeerState) GetValue (name string, q chan int) (chan int64){
         received := 0
         shares := make([]int64, len(state.ComputeSlaves))
         got_share := make([]bool, len(state.ComputeSlaves))
-        status := make(chan *sproto.Response, 1)
+        status := make(chan *sproto.Response, ChannelSize)
         state.SetChannelForRequest(requestID, status)
         shares_found := 0
         for received < len(state.ComputeSlaves) {
@@ -88,7 +88,7 @@ func (state *InputPeerState) GetValue (name string, q chan int) (chan int64){
                        client := int(*response.Client)
                        shares[client] = *response.Share
                        got_share[client] = true
-                       fmt.Printf("%s[%d] = %d\n", name, client, shares[client])
+                       //fmt.Printf("%s[%d] = %d\n", name, client, shares[client])
                        received += 1
                        shares_found += 1
                    case sproto.Response_Error:
@@ -104,7 +104,7 @@ func (state *InputPeerState) GetValue (name string, q chan int) (chan int64){
                 panic("Get value saw an unexpected message")
            }
         }
-        fmt.Println("Done getting")
+        //fmt.Println("Done getting")
         state.DelChannelForRequest(requestID)
         if shares_found > ((len(state.ComputeSlaves) - 1) >> 1) {
             done <- core.ReconstructSecret(&shares, &got_share, int32(len(state.ComputeSlaves)))
@@ -136,14 +136,14 @@ func (state *InputPeerState) Add (result string, left string, right string, q ch
         }
         state.PubChannel.Out() <- msg
         received := 0
-        status := make(chan *sproto.Response, 1)
+        status := make(chan *sproto.Response, ChannelSize)
         state.SetChannelForRequest(requestID, status)
         for received < len(state.ComputeSlaves) {
             <- status
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        done <- true
+        close(done)
         return
     }()
     return done
@@ -165,20 +165,20 @@ func (state *InputPeerState) Mul (result string, left string, right string, q ch
         var err error
         msg[1], err = proto.Marshal(action)
         if err != nil {
-            fmt.Println("Error marshaling ADD message: ", err)
+            fmt.Println("Error marshaling MUL message: ", err)
             q <- 1
         }
         state.PubChannel.Out() <- msg
         received := 0
-        status := make(chan *sproto.Response, 1)
+        status := make(chan *sproto.Response, ChannelSize)
         state.SetChannelForRequest(requestID, status)
         for received < len(state.ComputeSlaves) {
             <- status
             received += 1
-            fmt.Println("Returned mul return")
+            //fmt.Println("Returned mul return")
         }
         state.DelChannelForRequest(requestID)
-        done <- true
+        close(done)
         return
     }()
     return done
@@ -200,20 +200,20 @@ func (state *InputPeerState) Cmp (result string, left string, right string, q ch
         var err error
         msg[1], err = proto.Marshal(action)
         if err != nil {
-            fmt.Println("Error marshaling ADD message: ", err)
+            fmt.Println("Error marshaling CMP message: ", err)
             q <- 1
         }
         state.PubChannel.Out() <- msg
         received := 0
-        status := make(chan *sproto.Response, 1)
+        status := make(chan *sproto.Response, ChannelSize)
         state.SetChannelForRequest(requestID, status)
         for received < len(state.ComputeSlaves) {
             <- status
             received += 1
-            fmt.Println("Returned cmp return")
+            //fmt.Println("Returned cmp return")
         }
         state.DelChannelForRequest(requestID)
-        done <- true
+        close(done)
         return
     }()
     return done

@@ -7,6 +7,9 @@ message Action {
       Set = 2;
       Retrieve = 3;
       Cmp = 4;
+      Neq = 5;
+      Eqz = 6;
+      Neqz = 7;
   }
   required int64 request_code = 1;
   required Action action = 2;

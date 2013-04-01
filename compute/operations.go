@@ -144,6 +144,48 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
     return state.failResponse (action.GetRequestCode())
 }
 
+// Test if a value is 0
+func (state* ComputePeerState) neqz (val int64, rcode int64) (int64) {
+    exponent := core.LargePrime - 1 // We are going to raise the number to this power. 
+    res := int64(1)
+    step := int32(0)
+    for exponent > 0 {
+        if (exponent & 1 == 1) {
+            res = state.mul(res, val, rcode, step)
+            state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
+            step += 1
+        }
+        exponent >>= 1
+        val = state.mul(val, val, rcode, step)
+        state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
+        step += 1
+    }
+    return res
+}
+
+func (state* ComputePeerState) ncmp (share0val int64, share1val int64, rcode int64) (int64) {
+    a := core.Sub(share0val, share1val) 
+    return state.neqz (a, rcode)
+}
+
+// Inequality
+func (state *ComputePeerState) Neq (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Comparing values")
+    result := *action.Result
+    share0 := *action.Share0
+    share1 := *action.Share1
+    share0val, hasShare0Val := state.SharesGet(share0)
+    share1val, hasShare1Val := state.SharesGet(share1)
+    rcode := *action.RequestCode
+    if !hasShare0Val || !hasShare1Val {
+        return state.failResponse (action.GetRequestCode())
+    }
+    res := state.ncmp(share0val, share1val, rcode)
+    state.SharesSet(result, res)
+    fmt.Println("Done comparing values\n")
+    return state.okResponse (action.GetRequestCode())
+}
+
 // Equality operation
 func (state *ComputePeerState) Cmp (action *sproto.Action) (*sproto.Response) {
     fmt.Println("Comparing values")
@@ -156,21 +198,7 @@ func (state *ComputePeerState) Cmp (action *sproto.Action) (*sproto.Response) {
     if !hasShare0Val || !hasShare1Val {
         return state.failResponse (action.GetRequestCode())
     }
-    exponent := core.LargePrime - 1 // We are going to raise the number to this power. 
-    a := core.Sub(share0val, share1val) 
-    res := int64(1)
-    step := int32(0)
-    for exponent > 0 {
-        if (exponent & 1 == 1) {
-            res = state.mul(res, a, rcode, step)
-            state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
-            step += 1
-        }
-        exponent >>= 1
-        a = state.mul(a, a, rcode, step)
-        state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
-        step += 1
-    }
+    res := state.ncmp(share0val, share1val, rcode)
     one := int64(1) 
     res = core.Sub(one, res)
     state.SharesSet(result, res)
@@ -178,3 +206,36 @@ func (state *ComputePeerState) Cmp (action *sproto.Action) (*sproto.Response) {
     return state.okResponse (action.GetRequestCode())
 }
 
+// Test equality to zero
+func (state *ComputePeerState) Eqz (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Comparing values")
+    result := *action.Result
+    share0 := *action.Share0
+    share0val, hasShare0Val := state.SharesGet(share0)
+    rcode := *action.RequestCode
+    if !hasShare0Val {
+        return state.failResponse (action.GetRequestCode())
+    }
+    res := state.neqz(share0val, rcode)
+    one := int64(1) 
+    res = core.Sub(one, res)
+    state.SharesSet(result, res)
+    fmt.Println("Done testing value for zero\n")
+    return state.okResponse (action.GetRequestCode())
+}
+
+// Test inequality to zero
+func (state *ComputePeerState) Neqz (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Comparing values")
+    result := *action.Result
+    share0 := *action.Share0
+    share0val, hasShare0Val := state.SharesGet(share0)
+    rcode := *action.RequestCode
+    if !hasShare0Val {
+        return state.failResponse (action.GetRequestCode())
+    }
+    res := state.neqz(share0val, rcode)
+    state.SharesSet(result, res)
+    fmt.Println("Done testing value for not zero\n")
+    return state.okResponse (action.GetRequestCode())
+}

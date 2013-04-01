@@ -190,6 +190,12 @@ func circuit (state *InputPeerState, end_channel chan int) {
     fmt.Printf("c == d? (should be 0) = %d\n", val)
     val = <- c23
     fmt.Printf("a == d? (should be 0) = %d\n", val)
+    vars := []string{"a", "b", "c", "d"}
+    c24 := state.FanInOrForSmirc("fir", vars, end_channel)
+    <- c24
+    c26 := state.GetValue("fir", end_channel)
+    val =<-c26
+    fmt.Printf("FanInOr == %d\n", val)
     end_channel <- 0
 }
 

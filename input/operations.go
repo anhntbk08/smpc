@@ -218,3 +218,103 @@ func (state *InputPeerState) Cmp (result string, left string, right string, q ch
     }()
     return done
 }
+
+func (state *InputPeerState) Neq (result string, left string, right string, q chan int) (chan bool) {
+    done := make(chan bool, 1) //Buffer to avoid hangs
+    go func() {
+        requestID := atomic.AddInt64(&state.RequestID, 1) 
+        msg := make([][]byte, 2)
+        msg[0] = []byte("CMD")
+        action := &sproto.Action{}
+        t := sproto.Action_Neq
+        action.Action = &t
+        action.Result = &result
+        action.RequestCode = &requestID
+        action.Share0 = &left
+        action.Share1 = &right
+        var err error
+        msg[1], err = proto.Marshal(action)
+        if err != nil {
+            fmt.Println("Error marshaling Neq message: ", err)
+            q <- 1
+        }
+        state.PubChannel.Out() <- msg
+        received := 0
+        status := make(chan *sproto.Response, ChannelSize)
+        state.SetChannelForRequest(requestID, status)
+        for received < len(state.ComputeSlaves) {
+            <- status
+            received += 1
+        }
+        state.DelChannelForRequest(requestID)
+        close(done)
+        return
+    }()
+    return done
+}
+
+func (state *InputPeerState) Neqz (result string, left string, q chan int) (chan bool) {
+    done := make(chan bool, 1) //Buffer to avoid hangs
+    go func() {
+        requestID := atomic.AddInt64(&state.RequestID, 1) 
+        msg := make([][]byte, 2)
+        msg[0] = []byte("CMD")
+        action := &sproto.Action{}
+        t := sproto.Action_Neqz
+        action.Action = &t
+        action.Result = &result
+        action.RequestCode = &requestID
+        action.Share0 = &left
+        var err error
+        msg[1], err = proto.Marshal(action)
+        if err != nil {
+            fmt.Println("Error marshaling Neq message: ", err)
+            q <- 1
+        }
+        state.PubChannel.Out() <- msg
+        received := 0
+        status := make(chan *sproto.Response, ChannelSize)
+        state.SetChannelForRequest(requestID, status)
+        for received < len(state.ComputeSlaves) {
+            <- status
+            received += 1
+        }
+        state.DelChannelForRequest(requestID)
+        close(done)
+        return
+    }()
+    return done
+}
+
+func (state *InputPeerState) Eqz (result string, left string, q chan int) (chan bool) {
+    done := make(chan bool, 1) //Buffer to avoid hangs
+    go func() {
+        requestID := atomic.AddInt64(&state.RequestID, 1) 
+        msg := make([][]byte, 2)
+        msg[0] = []byte("CMD")
+        action := &sproto.Action{}
+        t := sproto.Action_Eqz
+        action.Action = &t
+        action.Result = &result
+        action.RequestCode = &requestID
+        action.Share0 = &left
+        var err error
+        msg[1], err = proto.Marshal(action)
+        if err != nil {
+            fmt.Println("Error marshaling Neq message: ", err)
+            q <- 1
+        }
+        state.PubChannel.Out() <- msg
+        received := 0
+        status := make(chan *sproto.Response, ChannelSize)
+        state.SetChannelForRequest(requestID, status)
+        for received < len(state.ComputeSlaves) {
+            <- status
+            received += 1
+        }
+        state.DelChannelForRequest(requestID)
+        close(done)
+        return
+    }()
+    return done
+}

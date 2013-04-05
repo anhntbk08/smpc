@@ -52,6 +52,28 @@ func (state *ComputePeerState) GetValue (action *sproto.Action) (*sproto.Respons
     return state.failResponse (action.GetRequestCode())
 }
 
+// Remove the value for a share
+func (state *ComputePeerState) RemoveValue (action *sproto.Action) (*sproto.Response) {
+    result := *action.Result
+    _, hasVal := state.SharesGet(result)
+    if hasVal {
+        fmt.Println("Deleting value ", *action.Result)
+        result := *action.Result
+        state.SharesDelete(result)
+        fmt.Println("Returned from sharesdelete")
+        resp := &sproto.Response{}
+        rcode := action.GetRequestCode()
+        resp.RequestCode = &rcode
+        status := sproto.Response_OK
+        resp.Status = &status
+        client := int32(state.Client)
+        resp.Client = &client
+        fmt.Println("Done setting value")
+        return resp
+    }
+    return state.failResponse (action.GetRequestCode())
+}
+
 func (state *ComputePeerState) okResponse(rcode int64) (*sproto.Response) {
     resp := &sproto.Response{}
     resp.RequestCode = &rcode
@@ -75,7 +97,21 @@ func (state *ComputePeerState) Add (action *sproto.Action) (*sproto.Response) {
         fmt.Println("Done Adding")
         return state.okResponse(action.GetRequestCode())
     }
+    fmt.Printf("Failed additions, response would have been %s (%s, %v, %s, %v)\n", result)
     return state.failResponse (action.GetRequestCode())
+}
+
+func (state *ComputePeerState) OneSub (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Subtraction one from value")
+    result := *action.Result
+    share0 := *action.Share0
+    share0val, hasShare0val := state.SharesGet(share0)
+    if hasShare0val {
+        val := core.Sub(1, share0val)
+        state.SharesSet(result, val)
+    }
+    return state.failResponse (action.GetRequestCode())
+
 }
 
 func (state *ComputePeerState) DefaultAction (action *sproto.Action) (*sproto.Response) {
@@ -232,6 +268,7 @@ func (state *ComputePeerState) Neqz (action *sproto.Action) (*sproto.Response) {
     share0val, hasShare0Val := state.SharesGet(share0)
     rcode := *action.RequestCode
     if !hasShare0Val {
+        fmt.Printf("Failing, variable %s not found\n", share0)
         return state.failResponse (action.GetRequestCode())
     }
     res := state.neqz(share0val, rcode)

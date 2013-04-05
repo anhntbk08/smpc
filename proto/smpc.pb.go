@@ -24,6 +24,8 @@ const (
 	Action_Neq      Action_Action = 5
 	Action_Eqz      Action_Action = 6
 	Action_Neqz     Action_Action = 7
+	Action_Del      Action_Action = 8
+	Action_OneSub   Action_Action = 9
 )
 
 var Action_Action_name = map[int32]string{
@@ -35,6 +37,8 @@ var Action_Action_name = map[int32]string{
 	5: "Neq",
 	6: "Eqz",
 	7: "Neqz",
+	8: "Del",
+	9: "OneSub",
 }
 var Action_Action_value = map[string]int32{
 	"Add":      0,
@@ -45,6 +49,8 @@ var Action_Action_value = map[string]int32{
 	"Neq":      5,
 	"Eqz":      6,
 	"Neqz":     7,
+	"Del":      8,
+	"OneSub":   9,
 }
 
 func (x Action_Action) Enum() *Action_Action {

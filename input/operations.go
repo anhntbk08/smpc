@@ -318,3 +318,68 @@ func (state *InputPeerState) Eqz (result string, left string, q chan int) (chan 
     }()
     return done
 }
+
+func (state *InputPeerState) OneSub (result string, left string, q chan int) (chan bool) {
+    done := make(chan bool, 1) //Buffer to avoid hangs
+    go func() {
+        requestID := atomic.AddInt64(&state.RequestID, 1) 
+        msg := make([][]byte, 2)
+        msg[0] = []byte("CMD")
+        action := &sproto.Action{}
+        t := sproto.Action_OneSub
+        action.Action = &t
+        action.Result = &result
+        action.RequestCode = &requestID
+        action.Share0 = &left
+        var err error
+        msg[1], err = proto.Marshal(action)
+        if err != nil {
+            fmt.Println("Error marshaling Neq message: ", err)
+            q <- 1
+        }
+        state.PubChannel.Out() <- msg
+        received := 0
+        status := make(chan *sproto.Response, ChannelSize)
+        state.SetChannelForRequest(requestID, status)
+        for received < len(state.ComputeSlaves) {
+            <- status
+            received += 1
+        }
+        state.DelChannelForRequest(requestID)
+        close(done)
+        return
+    }()
+    return done
+}
+
+func (state *InputPeerState) DelValue (result string,  q chan int) (chan bool) {
+    done := make(chan bool, 1) //Buffer to avoid hangs
+    go func() {
+        requestID := atomic.AddInt64(&state.RequestID, 1) 
+        msg := make([][]byte, 2)
+        msg[0] = []byte("CMD")
+        action := &sproto.Action{}
+        t := sproto.Action_Del
+        action.Action = &t
+        action.Result = &result
+        action.RequestCode = &requestID
+        var err error
+        msg[1], err = proto.Marshal(action)
+        if err != nil {
+            fmt.Println("Error marshaling Neq message: ", err)
+            q <- 1
+        }
+        state.PubChannel.Out() <- msg
+        received := 0
+        status := make(chan *sproto.Response, ChannelSize)
+        state.SetChannelForRequest(requestID, status)
+        for received < len(state.ComputeSlaves) {
+            <- status
+            received += 1
+        }
+        state.DelChannelForRequest(requestID)
+        close(done)
+        return
+    }()
+    return done
+}

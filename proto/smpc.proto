@@ -10,6 +10,8 @@ message Action {
       Neq = 5;
       Eqz = 6;
       Neqz = 7;
+      Del = 8;
+      OneSub = 9;
   }
   required int64 request_code = 1;
   required Action action = 2;

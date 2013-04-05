@@ -114,6 +114,16 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     fmt.Printf("Set %v to %v\n", share, true)
 }
 
+func (state *ComputePeerState) SharesDelete (share string) {
+    fmt.Println("SharesDelete called, locking")
+    state.ShareLock.Lock()
+    defer state.ShareLock.Unlock()
+    fmt.Println("ShareDelete called, locked")
+    delete(state.Shares, share)
+    delete(state.HasShare, share)
+    fmt.Printf("Deleted")
+}
+
 func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [][]byte) {
     fmt.Println("Dispatching action")
     var resp *sproto.Response
@@ -147,6 +157,14 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
             fmt.Println("Dispatching NEQZ")
             resp = state.Neqz(action)
             fmt.Println("Returning from NEQZ")
+        case sproto.Action_Del:
+            fmt.Println("Dispatching DEL")
+            resp = state.RemoveValue(action)
+            fmt.Println("Return from DEL")
+        case sproto.Action_OneSub:
+            fmt.Println("Dispatching 1SUB")
+            resp = state.OneSub(action)
+            fmt.Println("Return from 1SUB")
         default:
             fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)

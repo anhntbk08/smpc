@@ -196,6 +196,25 @@ func circuit (state *InputPeerState, end_channel chan int) {
     c26 := state.GetValue("fir", end_channel)
     val =<-c26
     fmt.Printf("FanInOr == %d\n", val)
+    indices := state.StoreArrayInSmpc ([]int64{int64(1), int64(3), int64(4), int64(2)},
+                        "indices", end_channel) 
+    ranks   := state.StoreArrayInSmpc ([]int64{int64(0), int64(0), int64(0), int64(3)},
+                        "ranks", end_channel)
+    c27 := state.ArgMax("argmaxres", indices, ranks, end_channel)
+    c28 := state.ArgMax("argmaxres1", indices, ranks, end_channel)
+    c29 := state.ArgMax("argmaxres2", indices, ranks, end_channel)
+    //c30 := state.ArgMax("argmaxres3", indices, ranks, end_channel)
+    //c31 := state.ArgMax("argmaxres4", indices, ranks, end_channel)
+    //c32 := state.ArgMax("argmaxres5", indices, ranks, end_channel)
+    <- c27
+    <- c28
+    <- c29
+    //<- c30
+    //<- c31
+    //<- c32
+    c33 := state.GetValue("argmaxres", end_channel)
+    val = <- c33
+    fmt.Printf("ArgMax result (should be 2) = %d\n", val)
     end_channel <- 0
 }
 

@@ -20,7 +20,7 @@ import (
 //const LargePrime int64 = 571710243073 
 
 // (2 bits)
-const LargePrime int64 = 69206017 
+const LargePrime int64 = 8858370049 
 
 // Distribute a secret among a certain number of peers. Use the large Prime number above
 // as the field

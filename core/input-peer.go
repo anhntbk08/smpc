@@ -10,8 +10,17 @@ import (
    "math/big"
 )
 
-// The largest 63-bit prime number
-const LargePrime int64 = 9223372036854775783 
+// The largest 63-bit prime number (60 rounds for equality)
+// const LargePrime int64 = 9223372036854775783 
+
+// (13 bits)
+// const LargePrime int64 = 571710324769
+
+// (11 bits)
+//const LargePrime int64 = 571710243073 
+
+// (2 bits)
+const LargePrime int64 = 69206017 
 
 // Distribute a secret among a certain number of peers. Use the large Prime number above
 // as the field

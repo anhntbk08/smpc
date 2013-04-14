@@ -97,7 +97,7 @@ func (state *ComputePeerState) Add (action *sproto.Action) (*sproto.Response) {
         fmt.Println("Done Adding")
         return state.okResponse(action.GetRequestCode())
     }
-    fmt.Printf("Failed additions, response would have been %s (%s, %v, %s, %v)\n", result)
+    fmt.Printf("Failed additions, response would have been %s (%s, %v, %s, %v)\n", result, share0, hasShare0val, share1, hasShare1val)
     return state.failResponse (action.GetRequestCode())
 }
 
@@ -158,7 +158,7 @@ func (state *ComputePeerState) mul (share0 int64, share1 int64, rcode int64, ste
     }
     fmt.Printf("Intermediate data collected\n")
     share := core.MultCombineShares(&inputs, int32(state.NumClients))
-    fmt.Println("Done multiplying\n")
+    fmt.Printf("Done multiplying\n")
     return share
 }
 // Multiply two shares
@@ -173,7 +173,7 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
     if hasShare0val && hasShare1val {
         share := state.mul(share0val, share1val, rcode, 1)
         state.SharesSet(result, share)
-        fmt.Println("Done multiplying\n")
+        fmt.Printf("Done multiplying\n")
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, 1))
         return state.okResponse(action.GetRequestCode())
     }
@@ -218,7 +218,7 @@ func (state *ComputePeerState) Neq (action *sproto.Action) (*sproto.Response) {
     }
     res := state.ncmp(share0val, share1val, rcode)
     state.SharesSet(result, res)
-    fmt.Println("Done comparing values\n")
+    fmt.Printf("Done comparing values\n")
     return state.okResponse (action.GetRequestCode())
 }
 
@@ -238,7 +238,7 @@ func (state *ComputePeerState) Cmp (action *sproto.Action) (*sproto.Response) {
     one := int64(1) 
     res = core.Sub(one, res)
     state.SharesSet(result, res)
-    fmt.Println("Done comparing values\n")
+    fmt.Printf("Done comparing values\n")
     return state.okResponse (action.GetRequestCode())
 }
 
@@ -256,7 +256,7 @@ func (state *ComputePeerState) Eqz (action *sproto.Action) (*sproto.Response) {
     one := int64(1) 
     res = core.Sub(one, res)
     state.SharesSet(result, res)
-    fmt.Println("Done testing value for zero\n")
+    fmt.Printf("Done testing value for zero\n")
     return state.okResponse (action.GetRequestCode())
 }
 
@@ -273,6 +273,6 @@ func (state *ComputePeerState) Neqz (action *sproto.Action) (*sproto.Response) {
     }
     res := state.neqz(share0val, rcode)
     state.SharesSet(result, res)
-    fmt.Println("Done testing value for not zero\n")
+    fmt.Printf("Done testing value for not zero\n")
     return state.okResponse (action.GetRequestCode())
 }

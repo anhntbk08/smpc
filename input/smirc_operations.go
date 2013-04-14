@@ -138,7 +138,31 @@ func (state *InputPeerState) StoreArrayInSmpc (vals []int64, name string, q chan
     return array
 }
 
+func (state *InputPeerState) Store2DArrayInSmpc (vals [][]int64, name string, q chan int) ([][]string) {
+    strings := make([][]string, len(vals))
+    chans := make([][]chan bool, len(vals))
+    for i := 0; i < len(vals); i++ {
+        strings[i] = make([]string, len(vals[i]))
+        chans[i] = make([]chan bool, len(vals[i]))
+        for j := 0; j < len(vals); j++ {
+            strings[i][j] = state.Get2DArrayVarName(name, i, j)
+            chans[i][j] = state.SetValue(strings[i][j], vals[i][j], q)
+        }
+    }
+    for i := range chans {
+        for j := range chans[i] {
+            <- chans[i][j]
+        }
+    }
+    return strings
+}
+
 func (state *InputPeerState) GetArrayVarName (name string, elt int) (string) {
     seq := atomic.AddInt64(&state.RequestID, 1)
     return fmt.Sprintf("%s_%d_[%d]", name, seq, elt)
+}
+
+func (state *InputPeerState) Get2DArrayVarName (name string, eltx int, elty int) (string) {
+    seq := atomic.AddInt64(&state.RequestID, 1)
+    return fmt.Sprintf("%s_%d_[%d,%d]", name, seq, eltx, elty)
 }

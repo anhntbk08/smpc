@@ -81,7 +81,7 @@ func (state *ComputePeerState) ReceiveFromPeers () {
         //fmt.Printf("Core is now waiting for messages\n")
         select {
             case msg := <- state.PeerInChannel.In():
-                fmt.Println("Message on peer channel")
+                //fmt.Println("Message on peer channel")
                 intermediate := MsgToIntermediate(msg)
                 //fmt.Printf("Core received %d->%d request=%d\n", *intermediate.Client, state.Client, *intermediate.RequestCode)
                 if intermediate == nil {
@@ -277,10 +277,10 @@ func EventLoop (config *string, client int, q chan int) {
         //fmt.Println("Starting to wait")
         select {
             case msg := <- state.SubChannel.In():
-                fmt.Println("Message on SubChannel")
+                //fmt.Println("Message on SubChannel")
                 state.ActionMsg(msg) 
             case msg := <- state.CoordChannel.In():
-                fmt.Println("Message on CoordChannel")
+                //fmt.Println("Message on CoordChannel")
                 state.ActionMsg(msg)
             case err = <- state.SubChannel.Errors():
                 //fmt.Println("Error in SubChannel", err)

@@ -20,51 +20,17 @@ func (state *InputPeerState) ComputeExportStitch (topo *Topology, node int64, re
 
 // This also accounts for has next hop
 func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
-    ch := make([][]chan bool, len(topo.IndicesLink[node]))
-    tempVar := make([][]string, len(topo.IndicesLink[node]))
-    // First start by computing what is the next hop
+    // We already know next hops, so do some trivial computations for 
+    tempVar := make([]string, len(topo.IndicesLink[node]))
     for index := range topo.AdjacencyMatrix[node] {
         otherNode := topo.AdjacencyMatrix[node][index]
         nhop := topo.NextHop[otherNode]
-        ch[index] = make([]chan bool, len(topo.AdjacencyMatrix[otherNode]))
-        tempVar[index] = make([]string, len(topo.AdjacencyMatrix[otherNode]))
-        for possibleLinks := range topo.AdjacencyMatrix[otherNode] {
-            tempVar[index][possibleLinks] = state.Get2DArrayVarName("peerExport", index, possibleLinks)
-            defer state.DeleteTmpValue(tempVar[index][possibleLinks], q)
-            ch[index][possibleLinks] = state.CmpConst(tempVar[index][possibleLinks], nhop, topo.AdjacencyMatrix[otherNode][int64(possibleLinks)], q)
-        }
-    }
-
-    for i := range ch {
-        for j := range ch[i] {
-            <- ch[i][j]
-        }
-    }
-
-    //state.PrintMatrix(tempVar, q)
-
-    // Compute the export policies based on next hop
-    for index := range topo.AdjacencyMatrix[node] {
-        otherNode := topo.AdjacencyMatrix[node][index]
         otherLink := topo.NodeToPortMap[otherNode][node] // Link on another side
-        for possibleLinks := range topo.AdjacencyMatrix[otherNode] {
-            pLink := topo.NodeToPortMap[otherNode][topo.AdjacencyMatrix[otherNode][possibleLinks]]
-            ch[index][possibleLinks] = state.Mul(tempVar[index][possibleLinks], tempVar[index][possibleLinks], topo.Exports[otherNode][otherLink][pLink], q)
-        }
+        nhopLink := topo.NodeToPortMap[otherNode][nhop]
+        tempVar[index] = topo.Exports[topo.AdjacencyMatrix[node][index]][otherLink][nhopLink]
     }
 
-    for i := range ch {
-        for j := range ch[i] {
-            <- ch[i][j]
-        }
-    }
-    //state.PrintMatrix(tempVar, q)
-
-    // Extract a single export vector
-    state.CascadingAdd(tempVar, q)
-    //state.PrintMatrix(tempVar, q)
-
-    tempVar3 := make([][]string, len(tempVar))
+    tempVar3 := make([]string, len(tempVar))
     for i := range topo.AdjacencyMatrix[node] {
         onode := topo.AdjacencyMatrix[node][i]
         link := topo.NodeToPortMap[node][onode]
@@ -80,11 +46,11 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         //fmt.Printf("onodeIndex %d %d, indices %d\n",onodeIndex, len(result), len(topo.IndicesLink[node]))
         ch2[onodeIndex] = make([]chan bool, len(topo.IndicesLink[node]))
         tempVar2[onodeIndex][0] = result[onodeIndex]
-        ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar[0][0], topo.StitchingConsts[node][onodeIndex][0], q)
+        ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar[0], topo.StitchingConsts[node][onodeIndex][0], q)
         for index := 1; index < len(ch2[onodeIndex]); index++ {
             tempVar2[onodeIndex][index] = state.Get2DArrayVarName("peerExport2", onodeIndex, index)
             defer state.DeleteTmpValue(tempVar2[onodeIndex][index], q)
-            ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar[index][0], topo.StitchingConsts[node][onodeIndex][index], q)
+            ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar[index], topo.StitchingConsts[node][onodeIndex][index], q)
         }
     }
 
@@ -96,21 +62,17 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     state.CascadingAdd(tempVar2, q)
 }
 
-func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q chan int) (chan string) {
-    ch2 := make(chan string, 1) 
+func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q chan int) (chan int64) {
+    ch2 := make(chan int64, 1) 
     go func() {
         export := state.CreateDumbArray(len(topo.AdjacencyMatrix[node]), "export")
         nhop := state.GetArrayVarName("NextHop", int(node)) 
-        //func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
         state.ComputeExportPolicies (topo, node, export, q)
-        //state.PrintArray(export, q)
-        // fmt.Printf("Indices for node %d: ", node)
-        //state.PrintArray(topo.IndicesNode[node], q)
-        //func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
-        //fmt.Printf("Starting ArgMax\n")
         ch := state.ArgMax(nhop, topo.IndicesNode[node], export, q)
         <- ch
-        ch2 <- nhop
+        ch3 := state.GetValue(nhop, q)
+
+        ch2 <- <- ch3
     }()
     return ch2
 }

@@ -16,9 +16,9 @@ type Topology struct {
     StitchingConsts map[int64] [][]string 
     IndicesLink map[int64] []string
     IndicesNode map[int64] []string
-    HasNext map[int64] string
+    HasNext map[int64] int64
     Exports map[int64] [][]string
-    NextHop map[int64] string
+    NextHop map[int64] int64
 }
 
 func (topo *Topology) InitTopology (nodes int) {
@@ -27,9 +27,9 @@ func (topo *Topology) InitTopology (nodes int) {
     topo.StitchingConsts = make(map[int64] [][]string, nodes)
     topo.IndicesLink = make(map[int64] []string, nodes)
     topo.IndicesNode = make(map[int64] []string, nodes)
-    topo.HasNext = make(map[int64] string, nodes)
+    topo.HasNext = make(map[int64] int64, nodes)
     topo.Exports = make(map[int64] [][]string, nodes)
-    topo.NextHop = make(map[int64] string, nodes)
+    topo.NextHop = make(map[int64] int64, nodes)
 
     for i := int64(0); i < int64(nodes); i++ {
         topo.NodeToPortMap[i + 1] = make(map[int64] int64, nodes)
@@ -98,13 +98,13 @@ func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
     //fmt.Printf ("Export Stitch 4\n")
     //state.PrintMatrix(topo.StitchingConsts[4], q)
 
-    hasNext := state.StoreArrayInSmpc ([]int64 {0, 1, 0, 0}, "hasNext", q)
-    nextHop := state.StoreArrayInSmpc ([]int64 {0, 2, 0, 0}, "nextHop", q)
+    hasNext := []int64 {0, 1, 0, 0}
+    nextHop := []int64 {0, 2, 0, 0}
     for i := range hasNext {
         topo.HasNext[int64(i + 1)] = hasNext[i]
         topo.NextHop[int64(i + 1)] = nextHop[i]
     }
-    
+
     topo.Exports[1] = state.Store2DArrayInSmpc([][]int64 { []int64 {0, 0, 0}, []int64 {0, 0, 1}, []int64 {0, 1, 0}}, "export1", q)
     topo.Exports[2] = state.Store2DArrayInSmpc([][]int64 { []int64 {1, 0, 0, 0}, []int64 {1, 0, 0, 0}, []int64 {1, 0, 0, 0}, []int64 {1, 0,0,0}}, "export2", q)
     topo.Exports[3] = state.Store2DArrayInSmpc([][]int64 { []int64 {0, 0, 0}, []int64 {0, 0, 0}, []int64 {0, 0, 0}}, "export3", q)

@@ -31,7 +31,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
     return done
 }
 
-func (state *InputPeerState) ArgMax (result string, indices []int64, values []string, q chan int) (chan bool) {
+func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
     done := make(chan bool, 1)
     go func() {
 
@@ -90,11 +90,11 @@ func (state *InputPeerState) ArgMax (result string, indices []int64, values []st
         mulResults := make([]string, len(values))
         mulChans := make([]chan bool, len(values))
         mulResults[0] = result
-        mulChans[0] = state.MulConst(mulResults[0], fannedIn[0], indices[0], q)
+        mulChans[0] = state.Mul(mulResults[0], indices[0], fannedIn[0], q)
         for i := 1; i < len(values); i++ {
             mulResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_mul", i, mungingConst)
             defer state.DeleteTmpValue(mulResults[i], q)
-            mulChans[i] = state.MulConst(mulResults[i], fannedIn[i], indices[i], q)
+            mulChans[i] = state.Mul(mulResults[i], indices[i], fannedIn[i], q)
         }
         for ch := range mulChans {
             <- mulChans[ch]

@@ -5,33 +5,34 @@ import (
         "code.google.com/p/goprotobuf/proto" 
         "fmt"
         )
+var _ = fmt.Println
 /*
 We assume the message structure
    envelope <- address or empty
    data <- the actual data
 */
 func MsgToAction (msg [][]byte) (*sproto.Action) {
-    fmt.Println("Unmarshaling action", len(msg))
+    //fmt.Println("Unmarshaling action", len(msg))
     action := &sproto.Action{}
     // msg[0] is the reply envelope, hence use msg[1]
     err := proto.Unmarshal(msg[1], action)
-    fmt.Println("Unmarshaled")
+    //fmt.Println("Unmarshaled")
     if err != nil {
-        fmt.Println("Error unmarshaling", err)
+        //fmt.Println("Error unmarshaling", err)
         return nil
     }
     return action
 }
 
 func ResponseToMsg (resp *sproto.Response) ([][]byte) {
-    fmt.Println("Marshalling response")
+    //fmt.Println("Marshalling response")
     msg := make([][]byte, 2)
     msg[0] = []byte("")
     var err error
     msg[1], err = proto.Marshal(resp)
-    fmt.Println("Done  Marshalling response")
+    //fmt.Println("Done  Marshalling response")
     if err != nil {
-        fmt.Println("Error marshalling", err)
+        //fmt.Println("Error marshalling", err)
         return nil
     }
     return msg
@@ -43,7 +44,7 @@ func IntermediateToMsg (i *sproto.IntermediateData) ([][]byte) {
     msg[0] = []byte("")
     msg[1], err = proto.Marshal(i)
     if err != nil {
-        fmt.Println("Error marshalling", err)
+        //fmt.Println("Error marshalling", err)
         return nil
     }
     return msg

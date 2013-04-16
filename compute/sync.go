@@ -6,18 +6,19 @@ import (
         "encoding/binary"
         sproto "github.com/apanda/smpc/proto"
         )
+var _ = fmt.Println
 func (state *ComputePeerState) Sync (q chan int) {
     // Subscribe to HELO messages
     state.SubSock.Subscribe([]byte("HELO"))
-    fmt.Println("Starting to wait to receive HELO")
+    //fmt.Println("Starting to wait to receive HELO")
     // Wait to receive one HELO message
     _, err := state.SubSock.Recv()
     if err != nil {
-        fmt.Println("Receiving over subscription socket failed", err)
+        //fmt.Println("Receiving over subscription socket failed", err)
         q <- 1
         return
     }
-    fmt.Println("Received HELO, client ", int64(state.Client))
+    //fmt.Println("Received HELO, client ", int64(state.Client))
     // HELO messages are now useless, unsubscribe
     state.SubSock.Unsubscribe([]byte("HELO"))
 
@@ -26,10 +27,11 @@ func (state *ComputePeerState) Sync (q chan int) {
     resp[0] = make([]byte, binary.MaxVarintLen32)
     binary.PutVarint(resp[0], int64(state.Client))
     r, _ := binary.Varint(resp[0])
-    fmt.Printf("Client = %d\n", r)
+    _ = r
+    //fmt.Printf("Client = %d\n", r)
     err = state.CoordSock.Send(resp)
     if err != nil {
-        fmt.Println("Error sending on coordination socket", err)
+        //fmt.Println("Error sending on coordination socket", err)
         q <- 1
     }
 }
@@ -57,7 +59,7 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     t2 := sproto.IntermediateData_SyncBeaconReceived
     beaconRcvd.Type  = &t2
     done := false
-    fmt.Println("SYNC Entering intermediate sync")
+    //fmt.Println("SYNC Entering intermediate sync")
     for !done {
         for i, r := range beaconReceived {
             if !r {
@@ -77,10 +79,10 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
                 clientSeen[*rcvd.Client] = true
                 if *rcvd.Type ==  sproto.IntermediateData_SyncBeaconReceived {
                     beaconReceived[*rcvd.Client] = true
-                    fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
+                    //fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
                 } else {
                     state.PeerOutChannels[int(*rcvd.Client)].Out() <- IntermediateToMsg(beaconRcvd)
-                    fmt.Printf("SYNC %d -> %d beacon\n", *rcvd.Client, state.Client)
+                    //fmt.Printf("SYNC %d -> %d beacon\n", *rcvd.Client, state.Client)
                 }
             case <- sleep:
         }
@@ -91,5 +93,5 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     }
     
     state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
-    fmt.Println("SYNC Exiting intermediate sync")
+    //fmt.Println("SYNC Exiting intermediate sync")
 }

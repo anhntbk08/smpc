@@ -8,6 +8,7 @@ import (
         sproto "github.com/apanda/smpc/proto"
         "sync"
         )
+var _ = fmt.Println
 type RequestStepPair struct {
     Request int64
     Step int32
@@ -81,7 +82,6 @@ func (state *ComputePeerState) ReceiveFromPeers () {
         select {
             case msg := <- state.PeerInChannel.In():
                 fmt.Println("Message on peer channel")
-                //fmt.Printf("Received message at core\n")
                 intermediate := MsgToIntermediate(msg)
                 //fmt.Printf("Core received %d->%d request=%d\n", *intermediate.Client, state.Client, *intermediate.RequestCode)
                 if intermediate == nil {

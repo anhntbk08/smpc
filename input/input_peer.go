@@ -8,6 +8,7 @@ import (
         "os"
         "os/signal"
         "sync"
+        "time"
         )
 
 type InputPeerState struct {
@@ -136,7 +137,9 @@ func circuit (state *InputPeerState, end_channel chan int) {
     topo := state.MakeTestTopology(end_channel)  
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
+    elapsed := float64(0)
     for i := 0; i < 20; i++ {
+        now := time.Now() 
         nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
         c38 := state.RunSingleIteration(topo, 1, end_channel)
         c39 := state.RunSingleIteration(topo, 2, end_channel)
@@ -149,9 +152,10 @@ func circuit (state *InputPeerState, end_channel chan int) {
         nnhop[4] = <- c41
 
         topo.NextHop = nnhop
+        elapsed += (time.Since(now).Seconds())
     }
-
-    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1\n")
+    elapsed = elapsed / float64(20)
+    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1; time : %f\n", elapsed)
     for ind := range nnhop {
         c42 := state.GetValue(nnhop[ind], end_channel)
         val = <- c42

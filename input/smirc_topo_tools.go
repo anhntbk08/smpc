@@ -14,8 +14,8 @@ type Topology struct {
     // Node -> rank -> index -> bool (says whether for a node, rank x is link y)
     // For node is rank 0 index foo
     StitchingConsts map[int64] [][]string 
-    IndicesLink map[int64] []string
-    IndicesNode map[int64] []string
+    IndicesLink map[int64] []int64
+    IndicesNode map[int64] []int64
     HasNext map[int64] string
     Exports map[int64] [][]string
     NextHop map[int64] string
@@ -24,9 +24,9 @@ type Topology struct {
 func (topo *Topology) InitTopology (nodes int) {
     topo.AdjacencyMatrix = make(map[int64] []int64, nodes)
     topo.NodeToPortMap = make(map[int64] map[int64] int64, nodes)
-    topo.StitchingConsts = make(map[int64] [][]string, nodes)
-    topo.IndicesLink = make(map[int64] []string, nodes)
-    topo.IndicesNode = make(map[int64] []string, nodes)
+    //topo.StitchingConsts = make(map[int64] [][]string, nodes)
+    topo.IndicesLink = make(map[int64] []int64, nodes)
+    topo.IndicesNode = make(map[int64] []int64, nodes)
     topo.HasNext = make(map[int64] string, nodes)
     topo.Exports = make(map[int64] [][]string, nodes)
     topo.NextHop = make(map[int64] string, nodes)
@@ -62,41 +62,41 @@ func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
     topo.NodeToPortMap[4][2] = 2
     topo.NodeToPortMap[4][4] = 0
     
-    topo.IndicesLink[1] = state.StoreArrayInSmpc ([]int64 {2, 1, 0}, "indices0", q)
-    topo.IndicesNode[1] = state.StoreArrayInSmpc ([]int64 {2, 4, 1}, "indicesNode0", q)
+    topo.IndicesLink[1] = []int64 {2, 1, 0}
+    topo.IndicesNode[1] = []int64 {2, 4, 1}
     // Destination
-    topo.IndicesLink[2] = state.StoreArrayInSmpc ([]int64 {0, 2, 1, 3}, "indices1", q)
-    topo.IndicesNode[2] = state.StoreArrayInSmpc ([]int64 {2, 4, 3, 1}, "indicesNode1", q)
+    topo.IndicesLink[2] = []int64 {0, 2, 1, 3}
+    topo.IndicesNode[2] = []int64 {2, 4, 3, 1}
 
-    topo.IndicesLink[3] = state.StoreArrayInSmpc ([]int64 {1, 2, 0}, "indices2", q)
-    topo.IndicesNode[3] = state.StoreArrayInSmpc ([]int64 {2, 4, 3}, "indicesNode2", q)
+    topo.IndicesLink[3] = []int64 {1, 2, 0}
+    topo.IndicesNode[3] = []int64 {2, 4, 3}
 
-    topo.IndicesLink[4] = state.StoreArrayInSmpc ([]int64 {3, 2, 1, 0}, "indices3", q)
-    topo.IndicesNode[4] = state.StoreArrayInSmpc ([]int64 {1, 2, 3, 4}, "indicesNode3", q)
+    topo.IndicesLink[4] = []int64 {3, 2, 1, 0}
+    topo.IndicesNode[4] = []int64 {1, 2, 3, 4}
 
 
-    for i := int64(1); i < 5; i++ {
-        topo.StitchingConsts[i] = make([][]string, len(topo.IndicesLink[i]))
-        for j := range topo.IndicesLink[i] {
-            topo.StitchingConsts[i][j] = make([]string, len(topo.IndicesLink[i]))
-            for k := range topo.IndicesLink[i] {
-                topo.StitchingConsts[i][j][k] = state.Get3DArrayVarName("stitching", int(i), j, k)
-            }
-        }
-    }
+    //for i := int64(1); i < 5; i++ {
+    //    topo.StitchingConsts[i] = make([][]string, len(topo.IndicesLink[i]))
+    //    for j := range topo.IndicesLink[i] {
+    //        topo.StitchingConsts[i][j] = make([]string, len(topo.IndicesLink[i]))
+    //        for k := range topo.IndicesLink[i] {
+    //            topo.StitchingConsts[i][j][k] = state.Get3DArrayVarName("stitching", int(i), j, k)
+    //        }
+    //    }
+    //}
 
-    state.ComputeExportStitch(topo, 1, topo.StitchingConsts[1], q)
-    //fmt.Printf ("Export Stitch 1\n")
-    //state.PrintMatrix(topo.StitchingConsts[1], q)
-    state.ComputeExportStitch(topo, 2, topo.StitchingConsts[2], q)
-    //fmt.Printf ("Export Stitch 2\n")
-    //state.PrintMatrix(topo.StitchingConsts[2], q)
-    state.ComputeExportStitch(topo, 3, topo.StitchingConsts[3], q)
-    //fmt.Printf ("Export Stitch 3\n")
-    //state.PrintMatrix(topo.StitchingConsts[3], q)
-    state.ComputeExportStitch(topo, 4, topo.StitchingConsts[4], q)
-    //fmt.Printf ("Export Stitch 4\n")
-    //state.PrintMatrix(topo.StitchingConsts[4], q)
+    //state.ComputeExportStitch(topo, 1, topo.StitchingConsts[1], q)
+    ////fmt.Printf ("Export Stitch 1\n")
+    ////state.PrintMatrix(topo.StitchingConsts[1], q)
+    //state.ComputeExportStitch(topo, 2, topo.StitchingConsts[2], q)
+    ////fmt.Printf ("Export Stitch 2\n")
+    ////state.PrintMatrix(topo.StitchingConsts[2], q)
+    //state.ComputeExportStitch(topo, 3, topo.StitchingConsts[3], q)
+    ////fmt.Printf ("Export Stitch 3\n")
+    ////state.PrintMatrix(topo.StitchingConsts[3], q)
+    //state.ComputeExportStitch(topo, 4, topo.StitchingConsts[4], q)
+    ////fmt.Printf ("Export Stitch 4\n")
+    ////state.PrintMatrix(topo.StitchingConsts[4], q)
 
     hasNext := state.StoreArrayInSmpc ([]int64 {0, 1, 0, 0}, "hasNext", q)
     nextHop := state.StoreArrayInSmpc ([]int64 {0, 2, 0, 0}, "nextHop", q)

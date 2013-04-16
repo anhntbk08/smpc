@@ -132,89 +132,160 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
 }
 
 func circuit (state *InputPeerState, end_channel chan int) {
-    c1 := state.SetValue("food", int64(1), end_channel)
-    c2 := state.SetValue("pizza", int64(1), end_channel)
-    <- c1
-    <- c2
-    c3 := state.Add("delicious", "food", "pizza", end_channel)
-    <- c3
-    //fmt.Println("Running mul")
-    c4 := state.Mul("dd", "delicious", "food", end_channel)
-    c5 := state.GetValue("delicious", end_channel)
-    val := <- c5
-    fmt.Printf("delicious = %d\n", val)
-    c6 := state.GetValue("food", end_channel)
-    val = <-c6
-    fmt.Printf("food = %d\n", val)
-    <- c4
-    c7 := state.GetValue("dd", end_channel)
-    val = <- c7
-    fmt.Printf("dd = %d\n", val)
-    c8 := state.Mul("dd", "dd", "dd", end_channel)
-    <- c8
-    c9 := state.GetValue("dd", end_channel)
-    val = <- c9
-    fmt.Printf("dd = %d\n", val)
-    c10 := state.Mul("dd", "dd", "dd", end_channel)
-    <- c10
-    c11 := state.Mul("dd", "dd", "dd", end_channel)
-    <- c11
-    //c = state.Mul("dd", "dd", "dd", end_channel)
-    //<- c
-    c12 := state.Mul("dd", "dd", "dd", end_channel)
-    <- c12
-    c13 := state.GetValue("dd", end_channel)
-    val = <- c13
-    fmt.Printf("dd = %d\n", val)
+    //c1 := state.SetValue("food", int64(1), end_channel)
+    //c2 := state.SetValue("pizza", int64(1), end_channel)
+    //<- c1
+    //<- c2
+    //c3 := state.Add("delicious", "food", "pizza", end_channel)
+    //<- c3
+    ////fmt.Println("Running mul")
+    //c4 := state.Mul("dd", "delicious", "food", end_channel)
+    //c5 := state.GetValue("delicious", end_channel)
+    //val := <- c5
+    //fmt.Printf("delicious = %d\n", val)
+    //c6 := state.GetValue("food", end_channel)
+    //val = <-c6
+    //fmt.Printf("food = %d\n", val)
+    //<- c4
+    //c7 := state.GetValue("dd", end_channel)
+    //val = <- c7
+    //fmt.Printf("dd = %d\n", val)
+    //c8 := state.Mul("dd", "dd", "dd", end_channel)
+    //<- c8
+    //c9 := state.GetValue("dd", end_channel)
+    //val = <- c9
+    //fmt.Printf("dd = %d\n", val)
+    //c10 := state.Mul("dd", "dd", "dd", end_channel)
+    //<- c10
+    //c11 := state.Mul("dd", "dd", "dd", end_channel)
+    //<- c11
+    ////c = state.Mul("dd", "dd", "dd", end_channel)
+    ////<- c
+    //c12 := state.Mul("dd", "dd", "dd", end_channel)
+    //<- c12
+    //c13 := state.GetValue("dd", end_channel)
+    //val = <- c13
+    //fmt.Printf("dd = %d\n", val)
 
-    c14 := state.SetValue("a", int64(100), end_channel)
-    c15 := state.SetValue("b", int64(100), end_channel)
-    c16 := state.SetValue("c", int64(20), end_channel)
-    c17 := state.SetValue("d", int64(0), end_channel)
-    <- c14
-    <- c15
-    <- c16
-    <- c17
-    c18 := state.Cmp("avb", "a", "b", end_channel)
-    c19 := state.Cmp("cvd", "c", "d", end_channel)
-    c20 := state.Cmp("avd", "a", "d", end_channel)
-    <- c18
-    <- c19
-    <- c20
-    c21 := state.GetValue("avb", end_channel)
-    c22 := state.GetValue("cvd", end_channel)
-    c23 := state.GetValue("avd", end_channel)
-    val = <- c21
-    fmt.Printf("Comparison a == b (should be 1) = %d\n", val)
-    val = <- c22
-    fmt.Printf("c == d? (should be 0) = %d\n", val)
-    val = <- c23
-    fmt.Printf("a == d? (should be 0) = %d\n", val)
-    vars := []string{"a", "b", "c", "d"}
-    c24 := state.FanInOrForSmirc("fir", vars, end_channel)
-    <- c24
-    c26 := state.GetValue("fir", end_channel)
-    val =<-c26
-    fmt.Printf("FanInOr == %d\n", val)
-    indices := state.StoreArrayInSmpc ([]int64{int64(1), int64(3), int64(4), int64(2)},
-                        "indices", end_channel) 
-    ranks   := state.StoreArrayInSmpc ([]int64{int64(0), int64(0), int64(0), int64(3)},
-                        "ranks", end_channel)
-    c27 := state.ArgMax("argmaxres", indices, ranks, end_channel)
-    c28 := state.ArgMax("argmaxres1", indices, ranks, end_channel)
-    c29 := state.ArgMax("argmaxres2", indices, ranks, end_channel)
-    c30 := state.ArgMax("argmaxres3", indices, ranks, end_channel)
-    c31 := state.ArgMax("argmaxres4", indices, ranks, end_channel)
-    c32 := state.ArgMax("argmaxres5", indices, ranks, end_channel)
-    <- c27
-    <- c28
-    <- c29
-    <- c30
-    <- c31
-    <- c32
-    c33 := state.GetValue("argmaxres", end_channel)
-    val = <- c33
-    fmt.Printf("ArgMax result (should be 2) = %d\n", val)
+    //c14 := state.SetValue("a", int64(100), end_channel)
+    //c15 := state.SetValue("b", int64(100), end_channel)
+    //c16 := state.SetValue("c", int64(20), end_channel)
+    //c17 := state.SetValue("d", int64(0), end_channel)
+    //<- c14
+    //<- c15
+    //<- c16
+    //<- c17
+    //c18 := state.Cmp("avb", "a", "b", end_channel)
+    //c19 := state.Cmp("cvd", "c", "d", end_channel)
+    //c20 := state.Cmp("avd", "a", "d", end_channel)
+    //<- c18
+    //<- c19
+    //<- c20
+    //c21 := state.GetValue("avb", end_channel)
+    //c22 := state.GetValue("cvd", end_channel)
+    //c23 := state.GetValue("avd", end_channel)
+    //val = <- c21
+    //fmt.Printf("Comparison a == b (should be 1) = %d\n", val)
+    //val = <- c22
+    //fmt.Printf("c == d? (should be 0) = %d\n", val)
+    //val = <- c23
+    //fmt.Printf("a == d? (should be 0) = %d\n", val)
+    //vars := []string{"a", "b", "c", "d"}
+    //c24 := state.FanInOrForSmirc("fir", vars, end_channel)
+    //<- c24
+    //c26 := state.GetValue("fir", end_channel)
+    //val =<-c26
+    //fmt.Printf("FanInOr == %d\n", val)
+    //indices := state.StoreArrayInSmpc ([]int64{int64(1), int64(3), int64(4), int64(2)},
+    //                    "indices", end_channel) 
+    //ranks   := state.StoreArrayInSmpc ([]int64{int64(0), int64(0), int64(0), int64(3)},
+    //                    "ranks", end_channel)
+    //c27 := state.ArgMax("argmaxres", indices, ranks, end_channel)
+    //c28 := state.ArgMax("argmaxres1", indices, ranks, end_channel)
+    ////c29 := state.ArgMax("argmaxres2", indices, ranks, end_channel)
+    ////c30 := state.ArgMax("argmaxres3", indices, ranks, end_channel)
+    ////c31 := state.ArgMax("argmaxres4", indices, ranks, end_channel)
+    ////c32 := state.ArgMax("argmaxres5", indices, ranks, end_channel)
+    //c29 := state.CmpConst("av100", "a", int64(100), end_channel)
+    //c30 := state.MulConst("ax10", "a", int64(10), end_channel)
+    //<- c27
+    //<- c28
+    //<- c29
+    //<- c30
+    //c31 := state.NeqConst("ax10v1000","ax10", int64(1000), end_channel)
+    //<- c31
+    ////<- c32
+    //c33 := state.GetValue("argmaxres", end_channel)
+    //val = <- c33
+    //fmt.Printf("ArgMax result (should be 2) = %d\n", val)
+    //c34 := state.GetValue("av100", end_channel)
+    //val = <-c34
+    //fmt.Printf("a == 100 (should be 1) = %d\n", val)
+    //c35 := state.GetValue("ax10", end_channel)
+    //val = <-c35
+    //fmt.Printf("ax10 (should be 1000) = %d\n", val)
+    //c36 := state.GetValue("ax10v1000", end_channel)
+    //val = <-c36
+    //fmt.Printf("ax10v1000 (should be 0) = %d\n", val)
+    val := int64(0)
+    topo := state.MakeTestTopology(end_channel)  
+    //arr := state.CreateDumbArray(4, "export3")
+    //state.ComputeExportPolicies(topo, 4, arr, end_channel)  
+    //fmt.Printf("Expected export policy: 0 1 0 0\n")
+    //for ind := range arr {
+    //    c37 := state.GetValue(arr[ind], end_channel)
+    //    val = <- c37
+    //    fmt.Printf("%d: %d\n", ind, val)
+    //}
+
+    
+    nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
+    c38 := state.RunSingleIteration(topo, 1, end_channel)
+    c39 := state.RunSingleIteration(topo, 2, end_channel)
+    c40 := state.RunSingleIteration(topo, 3, end_channel)
+    c41 := state.RunSingleIteration(topo, 4, end_channel)
+    nnhop[1] = <- c38
+    nnhop[2] = <- c39
+    nnhop[3] = <- c40
+    nnhop[4] = <- c41
+    //fmt.Printf("One round NextHop, should be 2, 2, 2, 2\n")
+    //for ind := range nnhop {
+    //    c42 := state.GetValue(nnhop[ind], end_channel)
+    //    val = <- c42
+    //    fmt.Printf("%d: %d\n", ind, val)
+    //}
+    topo.NextHop = nnhop
+    
+    nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
+    c38 = state.RunSingleIteration(topo, 1, end_channel)
+    c39 = state.RunSingleIteration(topo, 2, end_channel)
+    c40 = state.RunSingleIteration(topo, 3, end_channel)
+    c41 = state.RunSingleIteration(topo, 4, end_channel)
+
+    nnhop[1] = <- c38
+    nnhop[2] = <- c39
+    nnhop[3] = <- c40
+    nnhop[4] = <- c41
+
+    topo.NextHop = nnhop
+    
+    nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
+    c38 = state.RunSingleIteration(topo, 1, end_channel)
+    c39 = state.RunSingleIteration(topo, 2, end_channel)
+    c40 = state.RunSingleIteration(topo, 3, end_channel)
+    c41 = state.RunSingleIteration(topo, 4, end_channel)
+
+    nnhop[1] = <- c38
+    nnhop[2] = <- c39
+    nnhop[3] = <- c40
+    nnhop[4] = <- c41
+    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1\n")
+    for ind := range nnhop {
+        c42 := state.GetValue(nnhop[ind], end_channel)
+        val = <- c42
+        fmt.Printf("%d: %d\n", ind, val)
+    }
+    
     end_channel <- 0
 }
 

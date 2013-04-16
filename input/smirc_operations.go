@@ -1,168 +1,116 @@
 package main
 import (
         "fmt"
-        "sync/atomic"
         )
-func (state *InputPeerState) DeleteTmpValue (variable string, q chan int) {
-    ch := state.DelValue(variable, q)
+var _ = fmt.Printf // fmt is far too useful
+func (state *InputPeerState) ComputeExportStitch (topo *Topology, node int64, result [][]string, q chan int) {
+    ch := make([][]chan bool, len(topo.IndicesLink[node]))
+    for ind := range topo.AdjacencyMatrix[node] {
+        ch[ind] = make([]chan bool, len(topo.IndicesLink[node]))
+        for j := range topo.IndicesLink[node] {
+            ch[ind][j] = state.CmpConst(result[j][ind], topo.IndicesLink[node][j], int64(ind), q)
+        }
+    }
+    for i := range ch {
+        for j := range ch[i] {
+            <- ch[i][j]
+        }
+    }
+}
+
+// This also accounts for has next hop
+func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
+    ch := make([][]chan bool, len(topo.IndicesLink[node]))
+    tempVar := make([][]string, len(topo.IndicesLink[node]))
+    // First start by computing what is the next hop
+    for index := range topo.AdjacencyMatrix[node] {
+        otherNode := topo.AdjacencyMatrix[node][index]
+        nhop := topo.NextHop[otherNode]
+        ch[index] = make([]chan bool, len(topo.AdjacencyMatrix[otherNode]))
+        tempVar[index] = make([]string, len(topo.AdjacencyMatrix[otherNode]))
+        for possibleLinks := range topo.AdjacencyMatrix[otherNode] {
+            tempVar[index][possibleLinks] = state.Get2DArrayVarName("peerExport", index, possibleLinks)
+            defer state.DeleteTmpValue(tempVar[index][possibleLinks], q)
+            ch[index][possibleLinks] = state.CmpConst(tempVar[index][possibleLinks], nhop, topo.AdjacencyMatrix[otherNode][int64(possibleLinks)], q)
+        }
+    }
+
+    for i := range ch {
+        for j := range ch[i] {
+            <- ch[i][j]
+        }
+    }
+
+    //state.PrintMatrix(tempVar, q)
+
+    // Compute the export policies based on next hop
+    for index := range topo.AdjacencyMatrix[node] {
+        otherNode := topo.AdjacencyMatrix[node][index]
+        otherLink := topo.NodeToPortMap[otherNode][node] // Link on another side
+        for possibleLinks := range topo.AdjacencyMatrix[otherNode] {
+            pLink := topo.NodeToPortMap[otherNode][topo.AdjacencyMatrix[otherNode][possibleLinks]]
+            ch[index][possibleLinks] = state.Mul(tempVar[index][possibleLinks], tempVar[index][possibleLinks], topo.Exports[otherNode][otherLink][pLink], q)
+        }
+    }
+
+    for i := range ch {
+        for j := range ch[i] {
+            <- ch[i][j]
+        }
+    }
+    //state.PrintMatrix(tempVar, q)
+
+    // Extract a single export vector
+    state.CascadingAdd(tempVar, q)
+    //state.PrintMatrix(tempVar, q)
+
+    tempVar3 := make([][]string, len(tempVar))
+    for i := range topo.AdjacencyMatrix[node] {
+        onode := topo.AdjacencyMatrix[node][i]
+        link := topo.NodeToPortMap[node][onode]
+        tempVar3[link] = tempVar[i]
+    }
+    tempVar = tempVar3
+
+    // Rearrange based on ordering
+    tempVar2 := make([][]string, len(topo.IndicesLink[node]))
+    ch2 := make([][]chan bool, len(topo.IndicesLink[node]))
+    for onodeIndex := range tempVar2 {
+        tempVar2[onodeIndex] = make([]string, len(topo.IndicesLink[node]))
+        //fmt.Printf("onodeIndex %d %d, indices %d\n",onodeIndex, len(result), len(topo.IndicesLink[node]))
+        ch2[onodeIndex] = make([]chan bool, len(topo.IndicesLink[node]))
+        tempVar2[onodeIndex][0] = result[onodeIndex]
+        ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar[0][0], topo.StitchingConsts[node][onodeIndex][0], q)
+        for index := 1; index < len(ch2[onodeIndex]); index++ {
+            tempVar2[onodeIndex][index] = state.Get2DArrayVarName("peerExport2", onodeIndex, index)
+            defer state.DeleteTmpValue(tempVar2[onodeIndex][index], q)
+            ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar[index][0], topo.StitchingConsts[node][onodeIndex][index], q)
+        }
+    }
+
+    for i := range ch2 {
+        for j := range ch2[i] {
+            <- ch2[i][j]
+        }
+    }
+    state.CascadingAdd(tempVar2, q)
+}
+
+func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q chan int) (chan string) {
+    ch2 := make(chan string, 1) 
     go func() {
+        export := state.CreateDumbArray(len(topo.AdjacencyMatrix[node]), "export")
+        nhop := state.GetArrayVarName("NextHop", int(node)) 
+        //func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
+        state.ComputeExportPolicies (topo, node, export, q)
+        //state.PrintArray(export, q)
+        // fmt.Printf("Indices for node %d: ", node)
+        //state.PrintArray(topo.IndicesNode[node], q)
+        //func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
+        //fmt.Printf("Starting ArgMax\n")
+        ch := state.ArgMax(nhop, topo.IndicesNode[node], export, q)
         <- ch
+        ch2 <- nhop
     }()
-}
-
-func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q chan int) (chan bool) {
-    done := make(chan bool, 1) //Buffer to avoid hangs
-    go func() {
-        //tmpVar := Sprintf("__FanInOrForSmirc_%d_tmp", mungingConst)
-        mungingConst := atomic.AddInt64(&state.RequestID, 1) 
-        lenVar := len(vars)
-        for lenVar > 1 {
-            start := 0
-            start += (lenVar % 2)
-            chans := make([]chan bool, lenVar / 2)
-            for i := start; i < lenVar; i += 2 {
-                tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_tmp", i, mungingConst)
-                chans[i/2] = state.Add(tmpVar, vars[i], vars[i+1], q)
-                defer state.DeleteTmpValue(tmpVar, q) 
-                vars[i/2 + start] = tmpVar
-            }
-            for ch := range chans {
-                <- chans[ch]
-            }
-            lenVar = (lenVar / 2) + start
-        }
-        <- state.Neqz(result, vars[0], q)
-        close(done)
-    }()
-    return done
-}
-
-func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
-    done := make(chan bool, 1)
-    go func() {
-        if len(indices) != len(values) {
-            done <- false
-        }
-        mungingConst := atomic.AddInt64(&state.RequestID, 1) 
-        fannedIn := make([]string, len(values))
-        chans := make([]chan bool, len(values))
-        fannedIn[0] = fmt.Sprintf("__ArgMaxSmirc_0_%d_fior", mungingConst)
-        defer state.DeleteTmpValue(fannedIn[0], q)
-        chans[0] = state.Neqz(fannedIn[0], values[0], q)
-        for i := 1; i < len(values); i++ {
-            fannedIn[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_fior", i, mungingConst)
-            defer state.DeleteTmpValue(fannedIn[i], q)
-            vars := make([]string, i)
-            k := 0
-            for j := 0; j < i; j++ {
-                vars[k] = values[j]
-                k++
-            }
-            chans[i] = state.FanInOrForSmirc (fannedIn[i], vars, q)
-        }
-        neqzChans := make([]chan bool, len(values))
-        neqzResults := make([]string, len(values))
-        for i := 0; i < len(values); i++ {
-            neqzResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_neqz", i, mungingConst)
-            neqzChans[i] = state.Neqz(neqzResults[i], values[i], q)
-        }
-        for ch := range chans {
-            <- chans[ch]
-        }
-        oneSub := make([]chan bool, len(values))
-        for i := 0; i < len(values); i++ {
-            oneSub[i] = state.OneSub(fannedIn[i], fannedIn[i], q)
-        }
-        for ch := range oneSub {
-            <- oneSub[ch]
-        }
-        mulResults := make([]string, len(values))
-        mulChans := make([]chan bool, len(values))
-        mulResults[0] = result
-        mulChans[0] = state.Mul(mulResults[0], indices[0], fannedIn[0], q)
-        for i := 1; i < len(values); i++ {
-            mulResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_mul", i, mungingConst)
-            defer state.DeleteTmpValue(mulResults[i], q)
-            mulChans[i] = state.Mul(mulResults[i], indices[i], fannedIn[i], q)
-        }
-        for ch := range mulChans {
-            <- mulChans[ch]
-        }
-
-        for ch := range neqzChans {
-            <- neqzChans[ch]
-        }
-
-        for i := 0; i < len(values); i++ {
-            mulChans[i] = state.Mul(mulResults[i], mulResults[i], neqzResults[i], q)
-        }
-
-        for ch := range mulChans {
-            <- mulChans[ch]
-        }
-
-        lenMul := len(mulResults)
-        for lenMul > 1 {
-            start := 0
-            if lenMul % 2 != 0 {
-                start = 1
-            }
-            sumChans := make([]chan bool, lenMul/2)
-            for i := start; i < lenMul; i+=2 {
-                sumChans[i/2] = state.Add(mulResults[i], mulResults[i], mulResults[i+1], q)
-                mulResults[i/2 + start] = mulResults[i]
-            }
-
-            for ch := range sumChans {
-                <- sumChans[ch]
-            }
-
-            lenMul = (lenMul / 2) + start
-        }
-        fmt.Printf("Done ArgMax result is at %s\n", mulResults[0])
-        close(done)
-    }()
-    return done
-}
-
-func (state *InputPeerState) StoreArrayInSmpc (vals []int64, name string, q chan int) ([]string) {
-    array := make([]string, len(vals))
-    chans := make([]chan bool, len(vals))
-    for i := 0; i < len(vals); i++ {
-        array[i] = state.GetArrayVarName(name, i)
-        chans[i] = state.SetValue(array[i], vals[i], q)
-    }
-    for ch := range chans {
-        <- chans[ch]
-    }
-    return array
-}
-
-func (state *InputPeerState) Store2DArrayInSmpc (vals [][]int64, name string, q chan int) ([][]string) {
-    strings := make([][]string, len(vals))
-    chans := make([][]chan bool, len(vals))
-    for i := 0; i < len(vals); i++ {
-        strings[i] = make([]string, len(vals[i]))
-        chans[i] = make([]chan bool, len(vals[i]))
-        for j := 0; j < len(vals); j++ {
-            strings[i][j] = state.Get2DArrayVarName(name, i, j)
-            chans[i][j] = state.SetValue(strings[i][j], vals[i][j], q)
-        }
-    }
-    for i := range chans {
-        for j := range chans[i] {
-            <- chans[i][j]
-        }
-    }
-    return strings
-}
-
-func (state *InputPeerState) GetArrayVarName (name string, elt int) (string) {
-    seq := atomic.AddInt64(&state.RequestID, 1)
-    return fmt.Sprintf("%s_%d_[%d]", name, seq, elt)
-}
-
-func (state *InputPeerState) Get2DArrayVarName (name string, eltx int, elty int) (string) {
-    seq := atomic.AddInt64(&state.RequestID, 1)
-    return fmt.Sprintf("%s_%d_[%d,%d]", name, seq, eltx, elty)
+    return ch2
 }

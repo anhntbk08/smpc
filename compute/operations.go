@@ -276,3 +276,64 @@ func (state *ComputePeerState) Neqz (action *sproto.Action) (*sproto.Response) {
     fmt.Printf("Done testing value for not zero\n")
     return state.okResponse (action.GetRequestCode())
 }
+
+// Compare to const
+func (state *ComputePeerState) CmpConst (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Comparing to constant")
+    result := *action.Result
+    share0 := *action.Share0
+    val := *action.Value
+    share0val, hasShare0Val := state.SharesGet(share0)
+    rcode := *action.RequestCode
+    if !hasShare0Val {
+        fmt.Printf("Failing, variable %s not found\n", share0)
+        return state.failResponse (action.GetRequestCode())
+    }
+    res := core.Sub(val, share0val)
+    res = state.neqz(res, rcode)
+    one := int64(1)
+    res = core.Sub(one, res)
+    state.SharesSet(result, res)
+    fmt.Printf("Done comparing to const\n")
+    return state.okResponse(action.GetRequestCode())
+}
+
+// Compare to const
+func (state *ComputePeerState) NeqConst (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Comparing to constant")
+    result := *action.Result
+    share0 := *action.Share0
+    val := *action.Value
+    share0val, hasShare0Val := state.SharesGet(share0)
+    rcode := *action.RequestCode
+    if !hasShare0Val {
+        fmt.Printf("Failing, variable %s not found\n", share0)
+        return state.failResponse (action.GetRequestCode())
+    }
+    res := core.Sub(val, share0val)
+    fmt.Printf("Subtractiong const %d", val)
+    res = state.neqz(res, rcode)
+    state.SharesSet(result, res)
+    fmt.Printf("Done comparing to const\n")
+    return state.okResponse(action.GetRequestCode())
+}
+
+// Multiply const
+func (state *ComputePeerState) MulConst (action *sproto.Action) (*sproto.Response) {
+    fmt.Println("Multiplying with constants")
+    result := *action.Result
+    share0 := *action.Share0
+    val := *action.Value
+    share0val, hasShare0Val := state.SharesGet(share0)
+    rcode := *action.RequestCode
+    if !hasShare0Val {
+        fmt.Printf("Failing, variable %s not found\n", share0)
+        return state.failResponse (action.GetRequestCode())
+    }
+    res := core.MultUnderMod(val, share0val)
+    state.SharesSet(result, res)
+    fmt.Println("Done multiplying constants")
+    return state.okResponse(rcode)
+}
+// Add const
+// Sub const

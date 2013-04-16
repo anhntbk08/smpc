@@ -165,6 +165,18 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
             fmt.Println("Dispatching 1SUB")
             resp = state.OneSub(action)
             fmt.Println("Return from 1SUB")
+        case sproto.Action_CmpConst:
+            fmt.Println("Dispatching CmpConst")
+            resp = state.CmpConst(action)
+            fmt.Println("Returning from CmpConst")
+        case sproto.Action_NeqConst:
+            fmt.Println("Dispatching NeqConst")
+            resp = state.NeqConst(action)
+            fmt.Println("Returning from NeqConst")
+        case sproto.Action_MulConst:
+            fmt.Println("Dispatching MulConst")
+            resp = state.MulConst(action)
+            fmt.Println("Returning from MulConst")
         default:
             fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)

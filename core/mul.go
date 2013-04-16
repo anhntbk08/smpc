@@ -15,14 +15,22 @@ func MultShares (a int64, b int64, nshares int32) ([]int64) {
    return SmpcMultShares(a, b, nshares, LargePrime)
 }
 
-func SmpcMultShares (a int64, b int64, nshares int32, prime int64) ([]int64) {
+func MultUnderModPrime (a int64, b int64, prime int64) (int64) {
    aBig := big.NewInt(a)
    bBig := big.NewInt(b)
    primeBig := big.NewInt(prime)
    prod := big.NewInt(1)
    prod.Mul(aBig, bBig)
    prod.Mod(prod, primeBig) // Product of share is a value of an nshare polynomial
-   shares := DistributeSecret(prod.Int64(), 3)
+   return prod.Int64()
+}
+
+func MultUnderMod (a int64, b int64) (int64) {
+    return MultUnderModPrime(a, b, LargePrime)
+}
+
+func SmpcMultShares (a int64, b int64, nshares int32, prime int64) ([]int64) {
+   shares := DistributeSecret(MultUnderModPrime (a, b, prime), nshares)
    return shares
 }
 

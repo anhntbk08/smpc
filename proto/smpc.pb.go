@@ -26,19 +26,25 @@ const (
 	Action_Neqz     Action_Action = 7
 	Action_Del      Action_Action = 8
 	Action_OneSub   Action_Action = 9
+	Action_CmpConst Action_Action = 10
+	Action_NeqConst Action_Action = 11
+	Action_MulConst Action_Action = 12
 )
 
 var Action_Action_name = map[int32]string{
-	0: "Add",
-	1: "Mul",
-	2: "Set",
-	3: "Retrieve",
-	4: "Cmp",
-	5: "Neq",
-	6: "Eqz",
-	7: "Neqz",
-	8: "Del",
-	9: "OneSub",
+	0:  "Add",
+	1:  "Mul",
+	2:  "Set",
+	3:  "Retrieve",
+	4:  "Cmp",
+	5:  "Neq",
+	6:  "Eqz",
+	7:  "Neqz",
+	8:  "Del",
+	9:  "OneSub",
+	10: "CmpConst",
+	11: "NeqConst",
+	12: "MulConst",
 }
 var Action_Action_value = map[string]int32{
 	"Add":      0,
@@ -51,6 +57,9 @@ var Action_Action_value = map[string]int32{
 	"Neqz":     7,
 	"Del":      8,
 	"OneSub":   9,
+	"CmpConst": 10,
+	"NeqConst": 11,
+	"MulConst": 12,
 }
 
 func (x Action_Action) Enum() *Action_Action {

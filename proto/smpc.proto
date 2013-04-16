@@ -12,6 +12,9 @@ message Action {
       Neqz = 7;
       Del = 8;
       OneSub = 9;
+      CmpConst = 10;
+      NeqConst = 11;
+      MulConst = 12;
   }
   required int64 request_code = 1;
   required Action action = 2;

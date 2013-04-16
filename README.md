@@ -16,3 +16,4 @@ ZeroMQ 3.2
 go-zmq (originally from https://github.com/vaughan0/go-zmq, forked into https://github.com/apanda/go-zmq)
 Protobuf
 
+In this branch we relax anonymity for preferences

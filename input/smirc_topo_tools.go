@@ -10,6 +10,7 @@ type Topology struct {
     AdjacencyMatrix map[int64] []int64
     // Node -> node -> link
     NodeToPortMap map[int64] map[int64] int64
+    PortToNodeMap map[int64] map[int64] int64
     // Node -> int -> int -> bool
     // Node -> rank -> index -> bool (says whether for a node, rank x is link y)
     // For node is rank 0 index foo
@@ -24,6 +25,7 @@ type Topology struct {
 func (topo *Topology) InitTopology (nodes int) {
     topo.AdjacencyMatrix = make(map[int64] []int64, nodes)
     topo.NodeToPortMap = make(map[int64] map[int64] int64, nodes)
+    topo.PortToNodeMap = make(map[int64] map[int64] int64, nodes)
     topo.StitchingConsts = make(map[int64] [][]string, nodes)
     topo.IndicesLink = make(map[int64] []string, nodes)
     topo.IndicesNode = make(map[int64] []string, nodes)
@@ -33,6 +35,7 @@ func (topo *Topology) InitTopology (nodes int) {
 
     for i := int64(0); i < int64(nodes); i++ {
         topo.NodeToPortMap[i + 1] = make(map[int64] int64, nodes)
+        topo.PortToNodeMap[i + 1] = make(map[int64] int64, nodes)
     }
 }
 
@@ -47,20 +50,34 @@ func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
     topo.NodeToPortMap[1][4] = 1
     topo.NodeToPortMap[1][2] = 2
     topo.NodeToPortMap[1][1] = 0
+    topo.PortToNodeMap[1][1] = 4
+    topo.PortToNodeMap[1][2] = 2
+    topo.PortToNodeMap[1][0] = 1
 
     topo.NodeToPortMap[2][1] = 3
     topo.NodeToPortMap[2][3] = 1
     topo.NodeToPortMap[2][4] = 2
     topo.NodeToPortMap[2][2] = 0
+    topo.PortToNodeMap[2][3] = 1
+    topo.PortToNodeMap[2][1] = 3
+    topo.PortToNodeMap[2][2] = 4
+    topo.PortToNodeMap[2][0] = 2
 
     topo.NodeToPortMap[3][2] = 1
     topo.NodeToPortMap[3][4] = 2
     topo.NodeToPortMap[3][3] = 0
+    topo.PortToNodeMap[3][1] = 2
+    topo.PortToNodeMap[3][2] = 4
+    topo.PortToNodeMap[3][3] = 3
 
     topo.NodeToPortMap[4][1] = 3
     topo.NodeToPortMap[4][3] = 1
     topo.NodeToPortMap[4][2] = 2
     topo.NodeToPortMap[4][4] = 0
+    topo.PortToNodeMap[4][3] = 1
+    topo.PortToNodeMap[4][1] = 3
+    topo.PortToNodeMap[4][2] = 2
+    topo.PortToNodeMap[4][0] = 4
     
     topo.IndicesLink[1] = state.StoreArrayInSmpc ([]int64 {2, 1, 0}, "indices0", q)
     topo.IndicesNode[1] = state.StoreArrayInSmpc ([]int64 {2, 4, 1}, "indicesNode0", q)
@@ -104,7 +121,6 @@ func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
         topo.HasNext[int64(i + 1)] = hasNext[i]
         topo.NextHop[int64(i + 1)] = nextHop[i]
     }
-
     topo.Exports[1] = state.Store2DArrayInSmpc([][]int64 { []int64 {0, 0, 0}, []int64 {0, 0, 1}, []int64 {0, 1, 0}}, "export1", q)
     topo.Exports[2] = state.Store2DArrayInSmpc([][]int64 { []int64 {1, 0, 0, 0}, []int64 {1, 0, 0, 0}, []int64 {1, 0, 0, 0}, []int64 {1, 0,0,0}}, "export2", q)
     topo.Exports[3] = state.Store2DArrayInSmpc([][]int64 { []int64 {0, 0, 0}, []int64 {0, 0, 0}, []int64 {0, 0, 0}}, "export3", q)

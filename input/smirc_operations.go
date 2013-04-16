@@ -46,11 +46,19 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         //fmt.Printf("onodeIndex %d %d, indices %d\n",onodeIndex, len(result), len(topo.IndicesLink[node]))
         ch2[onodeIndex] = make([]chan bool, len(topo.IndicesLink[node]))
         tempVar2[onodeIndex][0] = result[onodeIndex]
-        ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar[0], topo.StitchingConsts[node][onodeIndex][0], q)
+        if topo.NextHop[topo.PortToNodeMap[node][0]] != 0 {  
+            ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar[0], topo.StitchingConsts[node][onodeIndex][0], q)
+        } else {
+            ch2[onodeIndex][0] = state.SetValue(tempVar2[onodeIndex][0], int64(0), q)
+        }
         for index := 1; index < len(ch2[onodeIndex]); index++ {
             tempVar2[onodeIndex][index] = state.Get2DArrayVarName("peerExport2", onodeIndex, index)
             defer state.DeleteTmpValue(tempVar2[onodeIndex][index], q)
-            ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar[index], topo.StitchingConsts[node][onodeIndex][index], q)
+            if topo.NextHop[topo.PortToNodeMap[node][int64(index)]] != 0 {
+                ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar[index], topo.StitchingConsts[node][onodeIndex][index], q)
+            } else {
+                ch2[onodeIndex][index] = state.SetValue(tempVar2[onodeIndex][index], int64(0), q)
+            }
         }
     }
 

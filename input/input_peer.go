@@ -256,29 +256,21 @@ func circuit (state *InputPeerState, end_channel chan int) {
     //}
     topo.NextHop = nnhop
     
-    nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
-    c38 = state.RunSingleIteration(topo, 1, end_channel)
-    c39 = state.RunSingleIteration(topo, 2, end_channel)
-    c40 = state.RunSingleIteration(topo, 3, end_channel)
-    c41 = state.RunSingleIteration(topo, 4, end_channel)
+    for i := 0; i < 20; i++ {
+        nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
+        c38 = state.RunSingleIteration(topo, 1, end_channel)
+        c39 = state.RunSingleIteration(topo, 2, end_channel)
+        c40 = state.RunSingleIteration(topo, 3, end_channel)
+        c41 = state.RunSingleIteration(topo, 4, end_channel)
 
-    nnhop[1] = <- c38
-    nnhop[2] = <- c39
-    nnhop[3] = <- c40
-    nnhop[4] = <- c41
+        nnhop[1] = <- c38
+        nnhop[2] = <- c39
+        nnhop[3] = <- c40
+        nnhop[4] = <- c41
 
-    topo.NextHop = nnhop
-    
-    nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
-    c38 = state.RunSingleIteration(topo, 1, end_channel)
-    c39 = state.RunSingleIteration(topo, 2, end_channel)
-    c40 = state.RunSingleIteration(topo, 3, end_channel)
-    c41 = state.RunSingleIteration(topo, 4, end_channel)
+        topo.NextHop = nnhop
+    }
 
-    nnhop[1] = <- c38
-    nnhop[2] = <- c39
-    nnhop[3] = <- c40
-    nnhop[4] = <- c41
     fmt.Printf("Two round NextHop, should be 2, 2, 2, 1\n")
     for ind := range nnhop {
         c42 := state.GetValue(nnhop[ind], end_channel)

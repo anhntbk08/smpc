@@ -8,7 +8,6 @@ import (
         "os"
         "os/signal"
         "sync"
-        "time"
         "strings"
         )
 
@@ -133,46 +132,12 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     }()
 }
 
-func circuit (state *InputPeerState, topo *Topology, end_channel chan int) {
-    val := int64(0)
-    _ = val
-    fmt.Printf("Starting circuit\n")
-    //topo := state.MakeTestTopology(end_channel)  
-    
-    nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
-    elapsed := float64(0)
-    iters :=12
-    for it := 0; it < iters; it++ {
-        t := time.Now()
-        nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
-        ch := make(map[int64] chan string, len(topo.AdjacencyMatrix))
-        for i := range topo.AdjacencyMatrix {
-            ch[i] = state.RunSingleIteration(topo, i, end_channel)
-        }
-        for i  := range topo.AdjacencyMatrix {
-            nnhop[i] = <- ch[i]
-        }
-        topo.NextHop = nnhop
-        elapsed += (time.Since(t).Seconds())
-    }
-
-    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(iters))
-    for ind := range nnhop {
-        c42 := state.GetValue(nnhop[ind], end_channel)
-        val = <- c42
-        fmt.Printf("%d: %d\n", ind, val)
-    }
-    
-    end_channel <- 0
-}
-
 func main() {
     // Start up by setting up a flag for the Configuration file
     config := flag.String("config", "conf", "Configuration file")
     topoFile := flag.String("topo", "", "Topology file")
     dest := flag.Int64("dest", 0, "Destination")
     flag.Parse()
-    jsonTopo := ParseJsonTopology(topoFile)  
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     configs := strings.Split(*config, " ")
@@ -197,12 +162,7 @@ func main() {
         }
     }
     fmt.Printf("All reported in, going to start\n")
-    topo := jsonTopo.MakeTopology(state[0], end_channel)
-    if *dest != 0 {
-        ch := state[0].SetValue(topo.NextHop[*dest], *dest, end_channel)
-        <- ch
-    }
-    go circuit(state[0], topo, end_channel)
+    go circuit(state, topoFile, *dest, end_channel)
     for {
         select {
             case status = <- end_channel: 

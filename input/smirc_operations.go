@@ -41,7 +41,9 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         }
     }
 
+    //fmt.Printf("What is next hop\n")
     //state.PrintMatrix(tempVar, q)
+    //fmt.Printf("\n")
 
     // Compute the export policies based on next hop
     for index := range topo.AdjacencyMatrix[node] {
@@ -58,11 +60,15 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
             <- ch[i][j]
         }
     }
+    //fmt.Printf("Export policies\n")
     //state.PrintMatrix(tempVar, q)
+    //fmt.Printf("\n")
 
     // Extract a single export vector
     state.CascadingAdd(tempVar, q)
+    //fmt.Printf("Export vector\n")
     //state.PrintMatrix(tempVar, q)
+    //fmt.Printf("\n")
 
     tempVar3 := make([][]string, len(tempVar))
     for i := range topo.AdjacencyMatrix[node] {
@@ -93,7 +99,13 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
             <- ch2[i][j]
         }
     }
+    //fmt.Printf("Rearranged\n")
+    //state.PrintMatrix(tempVar2, q)
+    //fmt.Printf("\n")
     state.CascadingAdd(tempVar2, q)
+    //fmt.Printf("Final\n")
+    //state.PrintMatrix(tempVar2, q)
+    //fmt.Printf("\n")
 }
 
 func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q chan int) (chan string) {

@@ -132,30 +132,28 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     }()
 }
 
-func circuit (state *InputPeerState, end_channel chan int) {
+func circuit (state *InputPeerState, topo *Topology, end_channel chan int) {
     val := int64(0)
-    topo := state.MakeTestTopology(end_channel)  
+    _ = val
+    //topo := state.MakeTestTopology(end_channel)  
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
     elapsed := float64(0)
-    for i := 0; i < 20; i++ {
-        now := time.Now() 
+    for it := 0; it < 10; it++ {
+        t := time.Now()
         nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
-        c38 := state.RunSingleIteration(topo, 1, end_channel)
-        c39 := state.RunSingleIteration(topo, 2, end_channel)
-        c40 := state.RunSingleIteration(topo, 3, end_channel)
-        c41 := state.RunSingleIteration(topo, 4, end_channel)
-
-        nnhop[1] = <- c38
-        nnhop[2] = <- c39
-        nnhop[3] = <- c40
-        nnhop[4] = <- c41
-
+        ch := make(map[int64] chan string, len(topo.AdjacencyMatrix))
+        for i := range topo.AdjacencyMatrix {
+            ch[i] = state.RunSingleIteration(topo, i, end_channel)
+        }
+        for i  := range topo.AdjacencyMatrix {
+            nnhop[i] = <- ch[i]
+        }
         topo.NextHop = nnhop
-        elapsed += (time.Since(now).Seconds())
+        elapsed += (time.Since(t).Seconds())
     }
-    elapsed = elapsed / float64(20)
-    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1; time : %f\n", elapsed)
+
+    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(20))
     for ind := range nnhop {
         c42 := state.GetValue(nnhop[ind], end_channel)
         val = <- c42
@@ -168,7 +166,10 @@ func circuit (state *InputPeerState, end_channel chan int) {
 func main() {
     // Start up by setting up a flag for the Configuration file
     config := flag.String("config", "conf", "Configuration file")
+    topoFile := flag.String("topo", "", "Topology file")
+    dest := flag.Int64("dest", 0, "Destination")
     flag.Parse()
+    jsonTopo := ParseJsonTopology(topoFile)  
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     end_channel := make(chan int, 1)
@@ -180,7 +181,12 @@ func main() {
         select {
             case <- coordinate_channel:
                 // Now ready to execute
-                go circuit(state, end_channel)
+                topo := jsonTopo.MakeTopology(state, end_channel)
+                if *dest != 0 {
+                    ch := state.SetValue(topo.NextHop[*dest], *dest, end_channel)
+                    <- ch
+                }
+                go circuit(state, topo, end_channel)
             case status = <- end_channel: 
                 os.Exit(status)
             case <- os_channel:

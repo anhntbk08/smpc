@@ -1,22 +1,112 @@
 package main
 import (
         "fmt"
+        "io/ioutil"
+        "encoding/json"
+        "strconv"
         )
 
 var _ = fmt.Printf
+
+type JsonTopology struct {
+    AdjacencyMatrix map[string] []int64
+    PortToNodeMap map[string] []int64
+    NodeToPortMap map[string] map[string] int64
+    ExportTables map[string] [][]int64 
+    IndicesLink map[string] []int64
+    IndicesNode map[string] []int64
+}
+
+func ParseJsonTopology (config *string) (*JsonTopology) {
+    contents, err := ioutil.ReadFile(*config)
+    if err != nil {
+        panic (fmt.Sprintf("Could not read topology file, error = %s", err))
+        return nil
+    }
+    var jsonTopo JsonTopology
+    // Parse configuration, produce an object. We assume configuration is in JSON
+    err = json.Unmarshal(contents, &jsonTopo)
+    if err != nil {
+        panic (fmt.Sprintf("Error reading json topology file: %v", err))
+        return nil
+    }
+    return &jsonTopo
+}
+
+
+func (json *JsonTopology) MakeTopology (state *InputPeerState, q chan int) (*Topology) {
+    nodes := len(json.AdjacencyMatrix)
+    topo := &Topology{}
+    topo.InitTopology (nodes)
+    for node := range json.AdjacencyMatrix {
+        nint32, _  := strconv.Atoi(node)
+        nint :=  int64(nint32)
+        topo.AdjacencyMatrix[nint] = json.AdjacencyMatrix[node]
+    }
+    for node := range json.PortToNodeMap {
+        nint32, _  := strconv.Atoi(node)
+        nint :=  int64(nint32)
+        for link := range json.PortToNodeMap[node] {
+            topo.PortToNodeMap[nint][int64(link)] = json.PortToNodeMap[node][link]
+        }
+    }
+
+    for node := range json.NodeToPortMap {
+        nint32, _  := strconv.Atoi(node)
+        nint := int64(nint32)
+        for onode := range json.NodeToPortMap[node] {
+            onint32, _ := strconv.Atoi(onode)
+            onodeint := int64(onint32)
+            topo.NodeToPortMap[nint][onodeint] = json.NodeToPortMap[node][onode]
+        }
+    }
+
+    for node := range json.ExportTables {
+        nint32, _  := strconv.Atoi(node)
+        nint := int64(nint32)
+        topo.Exports[nint] = state.Store2DArrayInSmpc(json.ExportTables[node], fmt.Sprintf("export_%s", node), q)
+    }
+    
+    for node := range json.IndicesLink {
+        nint32, _  := strconv.Atoi(node)
+        nint := int64(nint32)
+        topo.IndicesLink[nint] = state.StoreArrayInSmpc(json.IndicesLink[node], fmt.Sprintf("inlink_%s", node), q)
+        topo.IndicesNode[nint] = state.StoreArrayInSmpc(json.IndicesNode[node], fmt.Sprintf("innode_%s", node), q)
+    }
+
+    nextHop := state.CreateDumbArray(nodes, "nhop")
+    ch := make([]chan bool, nodes)
+    for i := int64(1); i < int64(nodes) + 1; i++ {
+        topo.StitchingConsts[i] = make([][]string, len(topo.IndicesLink[i]))
+        for j := range topo.IndicesLink[i] {
+            topo.StitchingConsts[i][j] = make([]string, len(topo.IndicesLink[i]))
+            for k := range topo.IndicesLink[i] {
+                topo.StitchingConsts[i][j][k] = state.Get3DArrayVarName("stitching", int(i), j, k)
+            }
+        }
+        state.ComputeExportStitch(topo, i, topo.StitchingConsts[i], q)
+        ch[i - 1] = state.SetValue(nextHop[i-1], 0, q)
+        topo.NextHop[i] = nextHop[i - 1]
+    }
+    for c := range ch {
+        <- ch[c]
+    }
+    return topo
+}
+
 type Topology struct {
     // Map from node to other connected nodes
     // Node -> link -> node (links are ordered i.e. 0, 1, 2, 3...)
     AdjacencyMatrix map[int64] []int64
     // Node -> node -> link
     NodeToPortMap map[int64] map[int64] int64
+    PortToNodeMap map[int64] map[int64] int64
     // Node -> int -> int -> bool
     // Node -> rank -> index -> bool (says whether for a node, rank x is link y)
     // For node is rank 0 index foo
     StitchingConsts map[int64] [][]string 
     IndicesLink map[int64] []string
     IndicesNode map[int64] []string
-    HasNext map[int64] string
     Exports map[int64] [][]string
     NextHop map[int64] string
 }
@@ -24,14 +114,15 @@ type Topology struct {
 func (topo *Topology) InitTopology (nodes int) {
     topo.AdjacencyMatrix = make(map[int64] []int64, nodes)
     topo.NodeToPortMap = make(map[int64] map[int64] int64, nodes)
+    topo.PortToNodeMap = make(map[int64] map[int64] int64, nodes)
     topo.StitchingConsts = make(map[int64] [][]string, nodes)
     topo.IndicesLink = make(map[int64] []string, nodes)
     topo.IndicesNode = make(map[int64] []string, nodes)
-    topo.HasNext = make(map[int64] string, nodes)
     topo.Exports = make(map[int64] [][]string, nodes)
     topo.NextHop = make(map[int64] string, nodes)
 
     for i := int64(0); i < int64(nodes); i++ {
+        topo.PortToNodeMap[i + 1] = make(map[int64] int64, nodes)
         topo.NodeToPortMap[i + 1] = make(map[int64] int64, nodes)
     }
 }
@@ -98,10 +189,8 @@ func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
     //fmt.Printf ("Export Stitch 4\n")
     //state.PrintMatrix(topo.StitchingConsts[4], q)
 
-    hasNext := state.StoreArrayInSmpc ([]int64 {0, 1, 0, 0}, "hasNext", q)
     nextHop := state.StoreArrayInSmpc ([]int64 {0, 2, 0, 0}, "nextHop", q)
-    for i := range hasNext {
-        topo.HasNext[int64(i + 1)] = hasNext[i]
+    for i := range nextHop {
         topo.NextHop[int64(i + 1)] = nextHop[i]
     }
     

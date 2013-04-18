@@ -1,0 +1,6 @@
+{
+  "PubAddress": "tcp://*:4002",
+  "ControlAddress" : "tcp://*:4003",
+  "Clients": 3,
+  "Shell": true
+}

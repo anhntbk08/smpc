@@ -9,6 +9,7 @@ import (
         "os/signal"
         "sync"
         "time"
+        "strings"
         )
 
 type InputPeerState struct {
@@ -135,6 +136,7 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
 func circuit (state *InputPeerState, topo *Topology, end_channel chan int) {
     val := int64(0)
     _ = val
+    fmt.Printf("Starting circuit\n")
     //topo := state.MakeTestTopology(end_channel)  
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
@@ -173,22 +175,38 @@ func main() {
     jsonTopo := ParseJsonTopology(topoFile)  
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
+    configs := strings.Split(*config, " ")
+    state := make([]*InputPeerState, len(configs))
+    coordinate_channel := make([]chan bool, len(configs))
+    fmt.Printf("Config files :%s\n", *config)
     end_channel := make(chan int, 1)
-    coordinate_channel := make(chan bool)
-    state := &InputPeerState{}
-    go EventLoop(config, state, end_channel, coordinate_channel)
     var status = 0
+    for i := range configs {
+        state[i] = &InputPeerState{}
+        coordinate_channel[i] = make(chan bool)
+        go EventLoop(&configs[i], state[i], end_channel, coordinate_channel[i])
+    }
+    for ch := range coordinate_channel {
+        select {
+            case <- coordinate_channel[ch]:
+                continue
+            case status = <- end_channel: 
+                os.Exit(status)
+            case <- os_channel:
+                os.Exit(status)
+        }
+    }
+    fmt.Printf("All reported in, going to start\n")
+    topo := jsonTopo.MakeTopology(state[0], end_channel)
+    if *dest != 0 {
+        ch := state[0].SetValue(topo.NextHop[*dest], *dest, end_channel)
+        <- ch
+    }
+    go circuit(state[0], topo, end_channel)
     for {
         select {
-            case <- coordinate_channel:
-                // Now ready to execute
-                topo := jsonTopo.MakeTopology(state, end_channel)
-                if *dest != 0 {
-                    ch := state.SetValue(topo.NextHop[*dest], *dest, end_channel)
-                    <- ch
-                }
-                go circuit(state, topo, end_channel)
             case status = <- end_channel: 
+                fmt.Printf("Exiting for some reason internal to us")
                 os.Exit(status)
             case <- os_channel:
                 os.Exit(status)

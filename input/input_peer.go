@@ -139,7 +139,8 @@ func circuit (state *InputPeerState, topo *Topology, end_channel chan int) {
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
     elapsed := float64(0)
-    for it := 0; it < 10; it++ {
+    iters :=12
+    for it := 0; it < iters; it++ {
         t := time.Now()
         nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
         ch := make(map[int64] chan string, len(topo.AdjacencyMatrix))
@@ -153,7 +154,7 @@ func circuit (state *InputPeerState, topo *Topology, end_channel chan int) {
         elapsed += (time.Since(t).Seconds())
     }
 
-    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(20))
+    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(iters))
     for ind := range nnhop {
         c42 := state.GetValue(nnhop[ind], end_channel)
         val = <- c42

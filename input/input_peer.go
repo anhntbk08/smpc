@@ -8,7 +8,7 @@ import (
         "os"
         "os/signal"
         "sync"
-        "time"
+        "strings"
         )
 
 type InputPeerState struct {
@@ -132,65 +132,41 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     }()
 }
 
-func circuit (state *InputPeerState, end_channel chan int) {
-    val := int64(0)
-    _ = val
-    topo := state.MakeTestTopology(end_channel)  
-    
-    nnhop := make(map[int64] int64, len(topo.AdjacencyMatrix))
-    hnhop := make(map[int64] int64, len(topo.AdjacencyMatrix))
-    elapsed := float64(0)
-    for i := 0; i < 20; i++ {
-        t := time.Now()
-        nnhop = make(map[int64] int64, len(topo.AdjacencyMatrix))
-        hnhop = make(map[int64] int64, len(topo.AdjacencyMatrix))
-        c38 := state.RunSingleIteration(topo, 1, end_channel)
-        nnhop[1] = <- c38
-        c39 := state.RunSingleIteration(topo, 2, end_channel)
-        nnhop[2] = <- c39
-        c40 := state.RunSingleIteration(topo, 3, end_channel)
-        nnhop[3] = <- c40
-        c41 := state.RunSingleIteration(topo, 4, end_channel)
-
-        nnhop[4] = <- c41
-
-        for j := range nnhop {
-            if nnhop[j] > 0 {
-                hnhop[j] = 1
-            }
-        }
-
-        topo.NextHop = nnhop
-        elapsed += (time.Since(t).Seconds())
-    }
-
-    fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(20))
-    for ind := range nnhop {
-        //c42 := state.GetValue(nnhop[ind], end_channel)
-        //val = <- c42
-        fmt.Printf("%d: %d\n", ind, nnhop[ind])
-    }
-    
-    end_channel <- 0
-}
-
 func main() {
     // Start up by setting up a flag for the Configuration file
     config := flag.String("config", "conf", "Configuration file")
+    topoFile := flag.String("topo", "", "Topology file")
+    dest := flag.Int64("dest", 0, "Destination")
     flag.Parse()
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
+    configs := strings.Split(*config, " ")
+    state := make([]*InputPeerState, len(configs))
+    coordinate_channel := make([]chan bool, len(configs))
+    fmt.Printf("Config files :%s\n", *config)
     end_channel := make(chan int, 1)
-    coordinate_channel := make(chan bool)
-    state := &InputPeerState{}
-    go EventLoop(config, state, end_channel, coordinate_channel)
     var status = 0
+    for i := range configs {
+        state[i] = &InputPeerState{}
+        coordinate_channel[i] = make(chan bool)
+        go EventLoop(&configs[i], state[i], end_channel, coordinate_channel[i])
+    }
+    for ch := range coordinate_channel {
+        select {
+            case <- coordinate_channel[ch]:
+                continue
+            case status = <- end_channel: 
+                os.Exit(status)
+            case <- os_channel:
+                os.Exit(status)
+        }
+    }
+    fmt.Printf("All reported in, going to start\n")
+    go circuit(state, topoFile, *dest, end_channel)
     for {
         select {
-            case <- coordinate_channel:
-                // Now ready to execute
-                go circuit(state, end_channel)
             case status = <- end_channel: 
+                fmt.Printf("Exiting for some reason internal to us")
                 os.Exit(status)
             case <- os_channel:
                 os.Exit(status)

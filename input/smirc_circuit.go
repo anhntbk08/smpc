@@ -30,10 +30,15 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
         ch := make(map[int64] chan string, len(topo.AdjacencyMatrix))
         for i := range topo.AdjacencyMatrix {
-            ch[i] = state.RunSingleIteration(topo, i, end_channel)
+            ch[i] = states[int(i) % len(states)].RunSingleIteration(topos[int(i) % len(states)], i, end_channel)
         }
+        fakech := make(map[int64] chan bool, len(topo.AdjacencyMatrix))
         for i  := range topo.AdjacencyMatrix {
             nnhop[i] = <- ch[i]
+            fakech[i] = DiffuseVar(states, nnhop[i], int(i) % len(states), end_channel)   
+        }
+        for i := range fakech {
+            <- fakech[i]
         }
         topo.NextHop = nnhop
         elapsed += (time.Since(t).Seconds())

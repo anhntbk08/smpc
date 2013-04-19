@@ -9,11 +9,17 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
     _ = val
     fmt.Printf("Starting circuit\n")
     jsonTopo := ParseJsonTopology(topoFile)  
-    topo := jsonTopo.MakeTopology(state, end_channel)
+    topos := jsonTopo.MakeBroadcastTopology(states, end_channel)
     if dest != 0 {
-        ch := state.SetValue(topo.NextHop[dest], dest, end_channel)
-        <- ch
+        ch := make([]chan bool, len(states))
+        for i := range states {
+            ch[i] = states[i].SetValue(topos[i].NextHop[dest], dest, end_channel)
+        }
+        for i := range ch {
+            <- ch[i]
+        }
     }
+    topo := topos[0]
     //topo := state.MakeTestTopology(end_channel)  
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))

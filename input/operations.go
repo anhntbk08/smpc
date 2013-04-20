@@ -51,7 +51,7 @@ func (state *InputPeerState) SetValue (name string, value int64, q chan int) (ch
         shares := core.DistributeSecret(value, int32(len(state.ComputeSlaves)))
         //fmt.Println("Done setting")
         state.SetRawValue (name, shares, requestID, q)
-        close(done)
+        done <- true
     }()
     return done
 }
@@ -152,7 +152,7 @@ func (state *InputPeerState) Add (result string, left string, right string, q ch
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -187,7 +187,7 @@ func (state *InputPeerState) Mul (result string, left string, right string, q ch
             //fmt.Println("Returned mul return")
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -222,7 +222,7 @@ func (state *InputPeerState) Cmp (result string, left string, right string, q ch
             //fmt.Println("Returned cmp return")
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -256,7 +256,7 @@ func (state *InputPeerState) Neq (result string, left string, right string, q ch
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -289,7 +289,7 @@ func (state *InputPeerState) Neqz (result string, left string, q chan int) (chan
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -322,7 +322,7 @@ func (state *InputPeerState) Eqz (result string, left string, q chan int) (chan 
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -355,7 +355,7 @@ func (state *InputPeerState) OneSub (result string, left string, q chan int) (ch
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -387,7 +387,7 @@ func (state *InputPeerState) DelValue (result string,  q chan int) (chan bool) {
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -421,7 +421,7 @@ func (state *InputPeerState) CmpConst (result string, left string, val int64, q 
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -455,7 +455,7 @@ func (state *InputPeerState) NeqConst (result string, left string, val int64, q 
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done
@@ -489,7 +489,7 @@ func (state *InputPeerState) MulConst (result string, left string, val int64, q 
             received += 1
         }
         state.DelChannelForRequest(requestID)
-        close(done)
+        done <- true
         return
     }()
     return done

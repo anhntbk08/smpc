@@ -24,7 +24,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
     elapsed := float64(0)
-    iters :=12
+    iters :=30
     for it := 0; it < iters; it++ {
         t := time.Now()
         nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))

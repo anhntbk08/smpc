@@ -26,7 +26,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
             lenVar = (lenVar / 2) + start
         }
         <- state.Neqz(result, vars[0], q)
-        close(done)
+        done <- true
     }()
     return done
 }
@@ -136,7 +136,7 @@ func (state *InputPeerState) ArgMax (result string, indices []int64, values []st
 
             lenMul = (lenMul / 2) + start
         }
-        close(done)
+        done <- true
     }()
     return done
 }

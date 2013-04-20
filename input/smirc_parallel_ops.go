@@ -13,7 +13,7 @@ func BroadcastSetValue (states []*InputPeerState, result string, value int64, q 
         for state := range chans {
             <- chans[state]
         }
-        close(ch)
+        ch <- true
     }()
     return ch
 }

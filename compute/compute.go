@@ -7,6 +7,7 @@ import (
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
         "sync"
+        redis "github.com/fzzy/radix/redis"
         )
 var _ = fmt.Println
 type RequestStepPair struct {
@@ -33,6 +34,7 @@ type ComputePeerState struct {
     Shares map[string] int64
     HasShare map[string] bool
     ShareLock sync.RWMutex
+    RedisClient *redis.Client
     Client int
     NumClients int
     ChannelMap map[RequestStepPair] chan *sproto.IntermediateData 
@@ -267,6 +269,13 @@ func EventLoop (config *string, client int, q chan int) {
     // not thread safe. Hence first sync, then get channels
     state.SubChannel = state.SubSock.ChannelsBuffer(BUFFER_SIZE)
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE)
+    redisConfig := redis.DefaultConfig()
+    redisConfig.Network = "tcp"
+    redisConfig.Address = configStruct.Databases[client].Address
+    redisConfig.Database = configStruct.Databases[client].Database
+    state.RedisClient = redis.NewClient(redisConfig)
+    fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
+
     defer func() {
         state.SubSock.Close()
         state.CoordSock.Close()

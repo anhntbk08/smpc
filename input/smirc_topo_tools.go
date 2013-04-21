@@ -113,7 +113,7 @@ type Topology struct {
 func (topo *Topology) InitTopology (nodes int) {
     topo.AdjacencyMatrix = make(map[int64] []int64, nodes)
     topo.NodeToPortMap = make(map[int64] map[int64] int64, nodes)
-    //topo.StitchingConsts = make(map[int64] [][]string, nodes)
+    topo.StitchingConsts = make(map[int64] [][]string, nodes)
     topo.IndicesLink = make(map[int64] []int64, nodes)
     topo.IndicesNode = make(map[int64] []int64, nodes)
     topo.Exports = make(map[int64] [][]string, nodes)

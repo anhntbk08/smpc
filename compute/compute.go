@@ -7,7 +7,6 @@ import (
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
         "sync"
-        "time"
         redis "github.com/fzzy/radix/redis"
         )
 var _ = fmt.Println
@@ -268,7 +267,6 @@ func EventLoop (config *string, client int, q chan int) {
     redisConfig.Network = "tcp"
     redisConfig.Address = configStruct.Databases[client].Address
     redisConfig.Database = configStruct.Databases[client].Database
-    redisConfig.Timeout = time.Duration(30) * time.Second // Socket timeout
     state.RedisClient = redis.NewClient(redisConfig)
     fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
 

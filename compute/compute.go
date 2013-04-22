@@ -98,9 +98,10 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     // defer state.ShareLock.RUnlock()
     // val := state.Shares[share]
     // has := state.HasShare[share]
-    r, err := state.RedisClient.Get(share).Int64()
+    r0 :=  state.RedisClient.Get(share)
+    r, err := r0.Int64()
     if err != nil {
-        fmt.Printf("Error %s: %v\n", share, err)
+        fmt.Printf("Error %s: %v %v %v %v\n", share, err, r0, r0.Type, r0.Err)
     }
     return r, (err == nil)
 }

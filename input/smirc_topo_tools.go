@@ -21,14 +21,12 @@ func ParseJsonTopology (config *string) (*JsonTopology) {
     contents, err := ioutil.ReadFile(*config)
     if err != nil {
         panic (fmt.Sprintf("Could not read topology file, error = %s", err))
-        return nil
     }
     var jsonTopo JsonTopology
     // Parse configuration, produce an object. We assume configuration is in JSON
     err = json.Unmarshal(contents, &jsonTopo)
     if err != nil {
         panic (fmt.Sprintf("Error reading json topology file: %v", err))
-        return nil
     }
     return &jsonTopo
 }

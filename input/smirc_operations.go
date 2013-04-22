@@ -21,12 +21,20 @@ var _ = fmt.Printf // fmt is far too useful
 // This also accounts for has next hop
 func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
     // We already know next hops, so do some trivial computations for 
+    chans := make([]chan bool, len(result))
     for index := range topo.IndicesNode[node] {
         otherNode := topo.IndicesNode[node][index]
         nhop := topo.NextHop[otherNode]
         otherLink := topo.NodeToPortMap[otherNode][node] // Link on another side
         nhopLink := topo.NodeToPortMap[otherNode][nhop]
-        result[index] = topo.Exports[topo.IndicesNode[node][index]][otherLink][nhopLink]
+        nhopBool := int64(0)
+        if nhop != 0 {
+            nhopBool = int64(1)
+        }
+        chans[index] = state.MulConst(result[index], topo.Exports[topo.IndicesNode[node][index]][otherLink][nhopLink], nhopBool, q)
+    }
+    for index := range chans {
+        <- chans[index]
     }
 
 }

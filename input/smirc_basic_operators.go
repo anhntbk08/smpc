@@ -15,7 +15,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
             start += (lenVar % 2)
             chans := make([]chan bool, lenVar / 2)
             for i := start; i < lenVar; i += 2 {
-                tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_tmp", i, mungingConst)
+                tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_%d_tmp", state.ClusterID, i, mungingConst)
                 chans[i/2] = state.Add(tmpVar, vars[i], vars[i+1], q)
                 defer state.DeleteTmpValue(tmpVar, q) 
                 vars[i/2 + start] = tmpVar
@@ -47,13 +47,13 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
         fannedIn := make([]string, len(values))
         chans := make([]chan bool, len(values))
         
-        fannedIn[0] = fmt.Sprintf("__ArgMaxSmirc_0_%d_fior", mungingConst)
+        fannedIn[0] = fmt.Sprintf("__ArgMaxSmirc_0_%d_%d_fior", state.ClusterID, mungingConst)
         defer state.DeleteTmpValue(fannedIn[0], q)
         // For the first thing, we just check to see if the first value is 0
         chans[0] = state.SetValue(fannedIn[0], 0, q)
         
         for i := 1; i < len(values); i++ {
-            fannedIn[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_fior", i, mungingConst)
+            fannedIn[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_%d_fior", i, state.ClusterID, mungingConst)
             defer state.DeleteTmpValue(fannedIn[i], q)
             vars := make([]string, i)
             k := 0
@@ -68,7 +68,7 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
         neqzResults := make([]string, len(values))
         for i := 0; i < len(values); i++ {
             // Again making sure the values for a particular thing are actually 0
-            neqzResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_neqz", i, mungingConst)
+            neqzResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_%d_neqz", i, state.ClusterID,  mungingConst)
             neqzChans[i] = state.Neqz(neqzResults[i], values[i], q)
         }
         for ch := range chans {
@@ -92,7 +92,7 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
         mulResults[0] = result
         mulChans[0] = state.Mul(mulResults[0], indices[0], fannedIn[0], q)
         for i := 1; i < len(values); i++ {
-            mulResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_mul", i, mungingConst)
+            mulResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_%d_mul", i, state.ClusterID,  mungingConst)
             defer state.DeleteTmpValue(mulResults[i], q)
             mulChans[i] = state.Mul(mulResults[i], indices[i], fannedIn[i], q)
         }

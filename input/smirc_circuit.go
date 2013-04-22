@@ -48,7 +48,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
     for ind := range nnhop {
         c42 := state.GetValue(nnhop[ind], end_channel)
         val = <- c42
-        fmt.Printf("%s %d: %d\n",nnhop[ind],  ind, val)
+        fmt.Printf("%s %d (%d): %d\n",nnhop[ind],  (int(ind) % len(states)), ind, val)
     }
     
     end_channel <- 0

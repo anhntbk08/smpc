@@ -78,17 +78,17 @@ func (state *InputPeerState) Store3DArrayInSmpc (vals [][][]int64, name string, 
 
 func (state *InputPeerState) GetArrayVarName (name string, elt int) (string) {
     seq := atomic.AddInt64(&state.RequestID, 1)
-    return fmt.Sprintf("%s_%d_[%d]", name, seq, elt)
+    return fmt.Sprintf("%s_%d_%d_%d", name, state.ClusterID, seq, elt)
 }
 
 func (state *InputPeerState) Get2DArrayVarName (name string, eltx int, elty int) (string) {
     seq := atomic.AddInt64(&state.RequestID, 1)
-    return fmt.Sprintf("%s_%d_[%d,%d]", name, seq, eltx, elty)
+    return fmt.Sprintf("%s_%d_%d_%d_%d", name, state.ClusterID, seq, eltx, elty)
 }
 
 func (state *InputPeerState) Get3DArrayVarName (name string, eltx int, elty int, eltz int) (string) {
     seq := atomic.AddInt64(&state.RequestID, 1)
-    return fmt.Sprintf("%s_%d_[%d,%d,%d]", name, seq, eltx, elty, eltz)
+    return fmt.Sprintf("%s_%d_%d_%d_%d_%d", name, state.ClusterID, seq, eltx, elty, eltz)
 }
 
 func (state *InputPeerState) CascadingAdd (array [][]string, q chan int) {

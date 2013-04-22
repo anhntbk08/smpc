@@ -7,7 +7,6 @@ import (
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
         "sync"
-        "time"
         redis "github.com/fzzy/radix/redis"
         )
 var _ = fmt.Println
@@ -101,7 +100,7 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     // has := state.HasShare[share]
     r, err := state.RedisClient.Get(share).Int64()
     if err != nil {
-        fmt.Printf("Error: (%s) %v\n", share, err)
+        fmt.Printf("Error: %v\n", err)
     }
     return r, (err == nil)
 }
@@ -115,7 +114,6 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     // state.HasShare[share] = true
     resp := state.RedisClient.Set(share, value)
     _ = resp
-    //fmt.Printf("Setting: (%s) %d %v\n", share, value, resp)
     //fmt.Printf("Set %v to %v\n", share, true)
 }
 
@@ -269,7 +267,6 @@ func EventLoop (config *string, client int, q chan int) {
     redisConfig.Network = "tcp"
     redisConfig.Address = configStruct.Databases[client].Address
     redisConfig.Database = configStruct.Databases[client].Database
-    redisConfig.Timeout = time.Duration(30) * time.Second // Socket timeout
     state.RedisClient = redis.NewClient(redisConfig)
     fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
 

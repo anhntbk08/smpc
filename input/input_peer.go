@@ -12,6 +12,7 @@ import (
         )
 
 type InputPeerState struct {
+    ClusterID int64
     ComputeSlaves [][]byte
     Config *Configuration
     RequestID int64
@@ -149,6 +150,7 @@ func main() {
     for i := range configs {
         state[i] = &InputPeerState{}
         coordinate_channel[i] = make(chan bool)
+        state[i].ClusterID = int64(i) 
         go EventLoop(&configs[i], state[i], end_channel, coordinate_channel[i])
     }
     for ch := range coordinate_channel {

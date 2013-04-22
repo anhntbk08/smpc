@@ -6,10 +6,15 @@ import (
         "fmt"
         )
 var _ = fmt.Println
+type Database struct {
+    Address string
+    Database int
+}
 type Configuration struct {
     PubAddress string
     ControlAddress string
     Clients []string
+    Databases []Database
 }
 /* Read and parse the configuration file */
 func ParseConfig (config *string, q chan int) (*Configuration) {
@@ -17,7 +22,7 @@ func ParseConfig (config *string, q chan int) (*Configuration) {
     // Read the configuration file
     contents, err := ioutil.ReadFile(*config)
     if err != nil {
-        //fmt.Printf ("Could not read configuration file, error = %s", err)
+        fmt.Printf ("Could not read configuration file, error = %s", err)
         q <- 1
         return nil
     }
@@ -25,7 +30,7 @@ func ParseConfig (config *string, q chan int) (*Configuration) {
     // Parse configuration, produce an object. We assume configuration is in JSON
     err = json.Unmarshal(contents, &configStruct)
     if err != nil {
-        //fmt.Println("Error reading json file: ", err)
+        fmt.Println("Error reading json file: ", err)
         q <- 1
         return nil
     }

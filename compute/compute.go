@@ -7,7 +7,7 @@ import (
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
         "sync"
-        redis "github.com/fzzy/radix/redis"
+        redis "github.com/apanda/radix/redis"
         )
 var _ = fmt.Println
 type RequestStepPair struct {
@@ -102,6 +102,11 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     isNil := false
     if r0 == nil {
         isNil = true
+    } else {
+        if r0.Type == redis.ReplyNil {
+            fmt.Printf("Retrying for %s\n", share)
+            r0 = state.RedisClient.Get(share)
+        }
     }
     r, err := r0.Int64()
     if err != nil {

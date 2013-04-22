@@ -7,6 +7,7 @@ import (
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
         "sync"
+        "time"
         redis "github.com/fzzy/radix/redis"
         )
 var _ = fmt.Println
@@ -31,9 +32,6 @@ type ComputePeerState struct {
     CoordChannel *zmq.Channels
     PeerInChannel *zmq.Channels
     PeerOutChannels map[int] *zmq.Channels
-    Shares map[string] int64
-    HasShare map[string] bool
-    ShareLock sync.RWMutex
     RedisClient *redis.Client
     Client int
     NumClients int
@@ -48,8 +46,6 @@ const INITIAL_CHANNEL_CAPACITY int = 100
 func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     state := &ComputePeerState{}
     state.Client = client
-    state.Shares = make(map[string] int64, INITIAL_MAP_CAPACITY)
-    state.HasShare = make(map[string] bool, INITIAL_MAP_CAPACITY)
     state.NumClients = numClients
     state.PeerOutSocks = make(map[int] *zmq.Socket, numClients)
     state.PeerOutChannels = make(map[int] *zmq.Channels, numClients)
@@ -99,32 +95,31 @@ func (state *ComputePeerState) ReceiveFromPeers () {
 }
 
 func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
-    state.ShareLock.RLock()
-    defer state.ShareLock.RUnlock()
-    val := state.Shares[share]
-    has := state.HasShare[share]
-    return val, has
+    // state.ShareLock.RLock()
+    // defer state.ShareLock.RUnlock()
+    // val := state.Shares[share]
+    // has := state.HasShare[share]
+    r, err := state.RedisClient.Get(share).Int64()
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+    }
+    return r, (err == nil)
 }
 
 func (state *ComputePeerState) SharesSet (share string, value int64) {
     //fmt.Println("SharesSet called, locking")
-    state.ShareLock.Lock()
-    defer state.ShareLock.Unlock()
-    //fmt.Println("SharesSet called, locked")
-    state.Shares[share] = value
-    //fmt.Printf("Set %v to %v\n", share, value)
-    state.HasShare[share] = true
+    // state.ShareLock.Lock()
+    // defer state.ShareLock.Unlock()
+    // //fmt.Println("SharesSet called, locked")
+    // state.Shares[share] = value
+    // state.HasShare[share] = true
+    resp := state.RedisClient.Set(share, value)
+    _ = resp
     //fmt.Printf("Set %v to %v\n", share, true)
 }
 
 func (state *ComputePeerState) SharesDelete (share string) {
-    //fmt.Println("SharesDelete called, locking")
-    state.ShareLock.Lock()
-    defer state.ShareLock.Unlock()
-    //fmt.Println("ShareDelete called, locked")
-    delete(state.Shares, share)
-    delete(state.HasShare, share)
-    //fmt.Printf("Deleted")
+    state.RedisClient.Del(share)
 }
 
 func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [][]byte) {
@@ -273,6 +268,7 @@ func EventLoop (config *string, client int, q chan int) {
     redisConfig.Network = "tcp"
     redisConfig.Address = configStruct.Databases[client].Address
     redisConfig.Database = configStruct.Databases[client].Database
+    redisConfig.Timeout = time.Duration(30) * time.Second // Socket timeout
     state.RedisClient = redis.NewClient(redisConfig)
     fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
 

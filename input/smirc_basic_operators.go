@@ -10,12 +10,13 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
         //tmpVar := Sprintf("__FanInOrForSmirc_%d_tmp", mungingConst)
         mungingConst := atomic.AddInt64(&state.RequestID, 1) 
         lenVar := len(vars)
+        iters := 0
         for lenVar > 1 {
             start := 0
             start += (lenVar % 2)
             chans := make([]chan bool, lenVar / 2)
             for i := start; i < lenVar; i += 2 {
-                tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_%d_tmp", state.ClusterID, i, mungingConst)
+                tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_%d_%d_tmp", state.ClusterID, i, iters, mungingConst)
                 chans[i/2] = state.Add(tmpVar, vars[i], vars[i+1], q)
                 defer state.DeleteTmpValue(tmpVar, q) 
                 vars[i/2 + start] = tmpVar
@@ -24,6 +25,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
                 <- chans[ch]
             }
             lenVar = (lenVar / 2) + start
+            iters += 1
         }
         <- state.Neqz(result, vars[0], q)
         done <- true

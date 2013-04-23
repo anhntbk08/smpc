@@ -26,12 +26,8 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         for i := range topo.AdjacencyMatrix {
             ch[i] = states[int(i) % len(states)].RunSingleIteration(topo, i, end_channel)
         }
-        fakech := make(map[int64] chan bool, len(topo.AdjacencyMatrix))
         for i  := range topo.AdjacencyMatrix {
             nnhop[i] = <- ch[i]
-        }
-        for i := range fakech {
-            <- fakech[i]
         }
         topo.NextHop = nnhop
         elapsed += (time.Since(t).Seconds())

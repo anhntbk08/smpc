@@ -32,7 +32,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         }
         topo.NextHop = nnhop
         elapsed += (time.Since(t).Seconds())
-        fmt.Printf("Round, avg time so far %f", elapsed/float64(it + 1))
+        fmt.Printf("Round, avg time so far %f\n", elapsed/float64(it + 1))
     }
 
     fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(iters))

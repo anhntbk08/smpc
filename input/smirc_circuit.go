@@ -15,10 +15,11 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         <- ch
     }
     //topo := state.MakeTestTopology(end_channel)  
+    fmt.Printf("Done with topology")
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
     elapsed := float64(0)
-    iters :=30
+    iters :=10
     for it := 0; it < iters; it++ {
         t := time.Now()
         nnhop = make(map[int64] string, len(topo.AdjacencyMatrix))
@@ -31,6 +32,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         }
         topo.NextHop = nnhop
         elapsed += (time.Since(t).Seconds())
+        fmt.Printf("Round, avg time so far %f", elapsed/float64(it + 1))
     }
 
     fmt.Printf("Two round NextHop, should be 2, 2, 2, 1 Time: %f\n", elapsed/float64(iters))

@@ -5,10 +5,10 @@ import (
         )
 
 func (state *InputPeerState) DeleteTmpValue (variable string, q chan int) {
-    ch := state.DelValue(variable, q)
-    go func() {
-        <- ch
-    }()
+//    ch := state.DelValue(variable, q)
+//    go func() {
+//        <- ch
+//    }()
 }
 
 func (state *InputPeerState) CreateDumbArray (size int, name string) ([]string) {

@@ -7,7 +7,7 @@ import (
         "os/signal"
         sproto "github.com/apanda/smpc/proto"
         "sync"
-        redis "github.com/fzzy/radix/redis"
+        redis "github.com/apanda/radix/redis"
         )
 var _ = fmt.Println
 type RequestStepPair struct {
@@ -98,9 +98,14 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     // defer state.ShareLock.RUnlock()
     // val := state.Shares[share]
     // has := state.HasShare[share]
-    r, err := state.RedisClient.Get(share).Int64()
+    r0 :=  state.RedisClient.Get(share)
+    isNil := false
+    if r0 == nil {
+        isNil = true
+    } 
+    r, err := r0.Int64()
     if err != nil {
-        fmt.Printf("Error: %v\n", err)
+        fmt.Printf("Error %s: %v %v %v %v\n", share, err, isNil, r0.Type, r0.Err)
     }
     return r, (err == nil)
 }
@@ -114,10 +119,10 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     // state.HasShare[share] = true
     resp := state.RedisClient.Set(share, value)
     _ = resp
-    //fmt.Printf("Set %v to %v\n", share, true)
 }
 
 func (state *ComputePeerState) SharesDelete (share string) {
+    fmt.Printf("Delete %s\n", share)
     state.RedisClient.Del(share)
 }
 

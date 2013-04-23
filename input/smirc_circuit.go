@@ -9,12 +9,9 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
     val := int64(0)
     _ = val
     jsonTopo := ParseJsonTopology(topoFile)  
-    topos := jsonTopo.MakeBroadcastTopology(states, end_channel)
-    topo := topos[0]
+    topo := jsonTopo.MakeTopology(state, end_channel)
     if dest != 0 {
-        for d := range topos {
-            topos[d].NextHop[dest] = dest
-        }
+        topo.NextHop[dest] = dest
     }
     //topo := state.MakeTestTopology(end_channel)  
     
@@ -26,7 +23,9 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         nnhop = make(map[int64] int64, len(topo.AdjacencyMatrix))
         ch := make(map[int64] chan int64, len(topo.AdjacencyMatrix))
         for i  := range topo.AdjacencyMatrix {
-            ch[i] = state.RunSingleIteration(topo, i, end_channel)
+            ch[i] = states[int(i) % len(states)].RunSingleIteration(topo, i, end_channel)
+        }
+        for i := range ch {
             nnhop[i] = <- ch[i]
         }
         //for i := range topo.AdjacencyMatrix {

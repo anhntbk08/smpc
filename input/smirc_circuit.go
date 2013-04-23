@@ -15,7 +15,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         <- ch
     }
     //topo := state.MakeTestTopology(end_channel)  
-    fmt.Printf("Done with topology")
+    fmt.Printf("Done with topology\n")
     
     nnhop := make(map[int64] string, len(topo.AdjacencyMatrix))
     elapsed := float64(0)

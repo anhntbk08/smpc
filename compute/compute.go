@@ -132,6 +132,7 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
 }
 
 func (state *ComputePeerState) SharesDelete (share string) {
+    fmt.Printf("Delete %s\n", share)
     state.RedisClient.Del(share)
 }
 

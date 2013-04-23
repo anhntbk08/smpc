@@ -17,6 +17,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
             for i := start; i < lenVar; i += 2 {
                 tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_%d_tmp", state.ClusterID, i, mungingConst)
                 chans[i/2] = state.Add(tmpVar, vars[i], vars[i+1], q)
+                fmt.Printf("Setting %s for client %d\n", tmpVar, state.ClusterID)
                 defer state.DeleteTmpValue(tmpVar, q) 
                 vars[i/2 + start] = tmpVar
             }

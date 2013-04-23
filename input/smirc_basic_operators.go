@@ -9,7 +9,6 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
     mungingConst := atomic.AddInt64(&state.RequestID, 1) 
     go func() {
         //tmpVar := Sprintf("__FanInOrForSmirc_%d_tmp", mungingConst)
-        fmt.Printf("FanInOrForSmirc called %d\n", mungingConst)
         lenVar := len(vars)
         iters := 0
         for lenVar > 1 {
@@ -19,7 +18,6 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
             for i := start; i < lenVar; i += 2 {
                 tmpVar := fmt.Sprintf("__FanInOrForSmirc_%d_%d_%d_%d_tmp", state.ClusterID, i, iters, mungingConst)
                 chans[i/2] = state.Add(tmpVar, vars[i], vars[i+1], q)
-                fmt.Printf("Setting %s for client %d\n", tmpVar, state.ClusterID)
                 defer state.DeleteTmpValue(tmpVar, q) 
                 vars[i/2 + start] = tmpVar
             }

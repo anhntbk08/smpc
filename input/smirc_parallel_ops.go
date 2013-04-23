@@ -18,19 +18,3 @@ func BroadcastSetValue (states []*InputPeerState, result string, value int64, q 
     return ch
 }
 
-func (json *JsonTopology) MakeBroadcastTopology (states []*InputPeerState, q chan int) ([]*Topology) {
-    topos := make([]*Topology, len(states))
-    fmt.Printf("Constructing topology\n")
-    chans := make([]chan bool, len(topos))
-    for i := range topos {
-        chans[i] = make(chan bool, 1)
-        go func(i int) {
-            topos[i] = json.MakeTopology(states[i], q)
-            chans[i] <- true
-        }(i)
-    }
-    for i := range chans {
-        <- chans[i]
-    }
-    return topos
-}

@@ -102,12 +102,7 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     isNil := false
     if r0 == nil {
         isNil = true
-    } else {
-        if r0.Type == redis.ReplyNil {
-            fmt.Printf("Error %s: %v %v\n", share, r0.Type, r0.Err)
-            r0 = state.RedisClient.Get(share)
-        }
-    }
+    } 
     r, err := r0.Int64()
     if err != nil {
         fmt.Printf("Error %s: %v %v %v %v\n", share, err, isNil, r0.Type, r0.Err)
@@ -124,11 +119,6 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     // state.HasShare[share] = true
     resp := state.RedisClient.Set(share, value)
     _ = resp
-    if resp.Err == nil {
-        fmt.Printf("Set %v to %v, response: %v\n", share, value, resp.Type)
-    } else {
-        fmt.Printf("Error setting %s: %v\n", share, resp.Err)
-    }
 }
 
 func (state *ComputePeerState) SharesDelete (share string) {

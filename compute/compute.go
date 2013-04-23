@@ -104,7 +104,7 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
         isNil = true
     } else {
         if r0.Type == redis.ReplyNil {
-            fmt.Printf("Retrying for %s\n", share)
+            fmt.Printf("Error %s: %v %v %v %v\n", share, err, isNil, r0.Type, r0.Err)
             r0 = state.RedisClient.Get(share)
         }
     }

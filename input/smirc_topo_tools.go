@@ -59,11 +59,15 @@ func (json *JsonTopology) MakeTopology (state *InputPeerState, q chan int) (*Top
         }
     }
 
+    fmt.Printf("Storing export tables\n")
+
     for node := range json.ExportTables {
         nint32, _  := strconv.Atoi(node)
         nint := int64(nint32)
         topo.Exports[nint] = state.Store2DArrayInSmpc(json.ExportTables[node], fmt.Sprintf("export_%s", node), q)
     }
+
+    fmt.Printf("Storing preferences\n")
     
     for node := range json.IndicesLink {
         nint32, _  := strconv.Atoi(node)
@@ -72,6 +76,7 @@ func (json *JsonTopology) MakeTopology (state *InputPeerState, q chan int) (*Top
         topo.IndicesNode[nint] = state.StoreArrayInSmpc(json.IndicesNode[node], fmt.Sprintf("innode_%s", node), q)
     }
 
+    fmt.Printf("Storing Next hop, and computing stitching constants\n")
     nextHop := state.CreateDumbArray(nodes, "nhop")
     ch := make([]chan bool, nodes)
     for i := int64(1); i < int64(nodes) + 1; i++ {

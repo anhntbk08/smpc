@@ -6,9 +6,10 @@ import (
 
 func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q chan int) (chan bool) {
     done := make(chan bool, 1) //Buffer to avoid hangs
+    mungingConst := atomic.AddInt64(&state.RequestID, 1) 
     go func() {
         //tmpVar := Sprintf("__FanInOrForSmirc_%d_tmp", mungingConst)
-        mungingConst := atomic.AddInt64(&state.RequestID, 1) 
+        fmt.Printf("FanInOrForSmirc called %d\n", mungingConst)
         lenVar := len(vars)
         for lenVar > 1 {
             start := 0

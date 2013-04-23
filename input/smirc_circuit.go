@@ -11,7 +11,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
     jsonTopo := ParseJsonTopology(topoFile)  
     topo := jsonTopo.MakeTopology(state, end_channel)
     if dest != 0 {
-        ch := states.SetValue(topo.NextHop[dest], dest, end_channel)
+        ch := state.SetValue(topo.NextHop[dest], dest, end_channel)
         <- ch
     }
     //topo := state.MakeTestTopology(end_channel)  

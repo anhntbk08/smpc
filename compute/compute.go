@@ -85,6 +85,10 @@ func (state *ComputePeerState) ReceiveFromPeers () {
                     panic ("Could not read intermediate message")
                 }
                 key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
+                _ = state
+                _ = *key
+                _ = state.SquelchTraffic
+                _ = state.SquelchTraffic[*key]
                 if !state.SquelchTraffic[*key] {
                     ch := state.ChannelForRequest(*key)
                     ch <- intermediate

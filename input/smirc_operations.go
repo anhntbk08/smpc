@@ -70,13 +70,12 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     //state.PrintMatrix(tempVar, q)
     //fmt.Printf("\n")
 
-    tempVar3 := make([][]string, len(tempVar))
+    tempVar3 := make([]string, len(tempVar))
     for i := range topo.AdjacencyMatrix[node] {
         onode := topo.AdjacencyMatrix[node][i]
         link := topo.NodeToPortMap[node][onode]
-        tempVar3[link] = tempVar[i]
+        tempVar3[link] = tempVar[i][0]
     }
-    tempVar = tempVar3
 
     // Rearrange based on ordering
     tempVar2 := make([][]string, len(topo.IndicesLink[node]))
@@ -86,11 +85,11 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         //fmt.Printf("onodeIndex %d %d, indices %d\n",onodeIndex, len(result), len(topo.IndicesLink[node]))
         ch2[onodeIndex] = make([]chan bool, len(topo.IndicesLink[node]))
         tempVar2[onodeIndex][0] = result[onodeIndex]
-        ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar[0][0], topo.StitchingConsts[node][onodeIndex][0], q)
+        ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar3[0], topo.StitchingConsts[node][onodeIndex][0], q)
         for index := 1; index < len(ch2[onodeIndex]); index++ {
             tempVar2[onodeIndex][index] = state.Get2DArrayVarName("peerExport2", onodeIndex, index)
             defer state.DeleteTmpValue(tempVar2[onodeIndex][index], q)
-            ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar[index][0], topo.StitchingConsts[node][onodeIndex][index], q)
+            ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar3[index], topo.StitchingConsts[node][onodeIndex][index], q)
         }
     }
 

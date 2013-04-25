@@ -71,7 +71,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
 
     // Extract a single export vector
     state.CascadingAdd(tempVar, q)
-    fmt.Printf("Before cascading add\n")
+    fmt.Printf("After cascading add\n")
     for i := range tempVar {
         fmt.Printf("%d: %s\n", i, tempVar[i][0])
     }

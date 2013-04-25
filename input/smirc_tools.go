@@ -106,6 +106,7 @@ func (state *InputPeerState) CascadingAdd (array [][]string, q chan int) {
                 continue
             }
             if limits[index] == 0 {
+                fmt.Printf("Quitting in cascading add since limits == 0\n")
                 q <- 0
             }
             done = false
@@ -113,6 +114,9 @@ func (state *InputPeerState) CascadingAdd (array [][]string, q chan int) {
             for i := start; i < limits[index]; i+=2 {
                 ch[index][(i/2) + start] = state.Add(array[index][i], array[index][i], array[index][i + 1], q)
                 array[index][(i/2) + start] = array[index][i]
+                if ((((i/2) + start) == 0) && (i != 0)) {
+                    fmt.Printf("cascading add: Overriding element 0\n")
+                }
             }
         }
 

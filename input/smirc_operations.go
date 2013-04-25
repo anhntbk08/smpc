@@ -88,6 +88,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar3[0], topo.StitchingConsts[node][onodeIndex][0], q)
         for index := 1; index < len(ch2[onodeIndex]); index++ {
             tempVar2[onodeIndex][index] = state.Get2DArrayVarName("peerExport2", onodeIndex, index)
+            fmt.Printf("About to set when multiplying %s\n", tempVar2[onodeIndex][index])
             defer state.DeleteTmpValue(tempVar2[onodeIndex][index], q)
             ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar3[index], topo.StitchingConsts[node][onodeIndex][index], q)
         }
@@ -96,6 +97,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     for i := range ch2 {
         for j := range ch2[i] {
             <- ch2[i][j]
+            fmt.Printf("Should have set when multiplying %s\n", tempVar2[onodeIndex][index])
         }
     }
     //fmt.Printf("Rearranged\n")

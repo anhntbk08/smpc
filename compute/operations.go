@@ -170,10 +170,13 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
     share1 := *action.Share1
     share0val, hasShare0val := state.SharesGet(share0)
     share1val, hasShare1val := state.SharesGet(share1)
+    fmt.Printf("Multiplying, will set %s\n", result)
     rcode := *action.RequestCode
     if hasShare0val && hasShare1val {
         share := state.mul(share0val, share1val, rcode, 1)
+        fmt.Printf("Done multiplying, setting %s\n", result)
         state.SharesSet(result, share)
+        fmt.Printf("Done multiplying, done setting %s\n", result)
         //fmt.Printf("Done multiplying\n")
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, 1))
         return state.okResponse(action.GetRequestCode())

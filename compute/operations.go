@@ -181,7 +181,7 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, 1))
         return state.okResponse(action.GetRequestCode())
     } else {
-        fmt.Printf("Not setting %s, could not find operands %s %v %s %v\n", share0, hasShare0val, share1, hasShare1val)
+        fmt.Printf("Not setting %s, could not find operands %s %v %s %v\n", result, share0, hasShare0val, share1, hasShare1val)
     }
     return state.failResponse (action.GetRequestCode())
 }
@@ -291,8 +291,9 @@ func (state *ComputePeerState) CmpConst (action *sproto.Action) (*sproto.Respons
     val := *action.Value
     share0val, hasShare0Val := state.SharesGet(share0)
     rcode := *action.RequestCode
+    fmt.Printf("CmpConst called to set %s\n", result)
     if !hasShare0Val {
-        //fmt.Printf("Failing, variable %s not found\n", share0)
+        fmt.Printf("Failing CmpConst for %s, variable %s not found\n", result, share0)
         return state.failResponse (action.GetRequestCode())
     }
     res := core.Sub(val, share0val)

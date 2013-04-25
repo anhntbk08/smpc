@@ -9,11 +9,13 @@ func (state *InputPeerState) ComputeExportStitch (topo *Topology, node int64, re
         ch[ind] = make([]chan bool, len(topo.IndicesLink[node]))
         for j := range topo.IndicesLink[node] {
             ch[ind][j] = state.CmpConst(result[j][ind], topo.IndicesLink[node][j], int64(ind), q)
+            fmt.Printf("CmpConst should set %s\n", result[j][ind])
         }
     }
     for i := range ch {
         for j := range ch[i] {
             <- ch[i][j]
+            fmt.Printf("CmpConst has set %s\n", result[j][ind])
         }
     }
 }

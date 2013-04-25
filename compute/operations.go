@@ -180,6 +180,8 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
         //fmt.Printf("Done multiplying\n")
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, 1))
         return state.okResponse(action.GetRequestCode())
+    } else {
+        fmt.Printf("Not setting %s, could not find operands %s %v %s %v\n", share0, hasShare0val, share1, hasShare1val)
     }
     return state.failResponse (action.GetRequestCode())
 }

@@ -60,22 +60,22 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
             <- ch[i][j]
         }
     }
-    fmt.Printf("Before cascading add\n")
-    for i := range tempVar {
-        fmt.Printf("%d: %s\n", i, tempVar[i][0])
-    }
-    fmt.Printf("\n")
+    //fmt.Printf("Before cascading add\n")
+    //for i := range tempVar {
+    //    fmt.Printf("%d: %s\n", i, tempVar[i][0])
+    //}
+    //fmt.Printf("\n")
     //fmt.Printf("Export policies\n")
     //state.PrintMatrix(tempVar, q)
     //fmt.Printf("\n")
 
     // Extract a single export vector
     state.CascadingAdd(tempVar, q)
-    fmt.Printf("After cascading add\n")
-    for i := range tempVar {
-        fmt.Printf("%d: %s\n", i, tempVar[i][0])
-    }
-    fmt.Printf("\n")
+    //fmt.Printf("After cascading add\n")
+    //for i := range tempVar {
+    //    fmt.Printf("%d: %s\n", i, tempVar[i][0])
+    //}
+    //fmt.Printf("\n")
     //fmt.Printf("Export vector\n")
     //state.PrintMatrix(tempVar, q)
     //fmt.Printf("\n")
@@ -85,13 +85,13 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         onode := topo.AdjacencyMatrix[node][i]
         link := topo.NodeToPortMap[node][onode]
         tempVar3[link] = tempVar[i][0]
-        fmt.Printf("(Node: %d) tempVar %d -> tempVar3 %d\n", node, i, link)
+    //    fmt.Printf("(Node: %d) tempVar %d -> tempVar3 %d\n", node, i, link)
     }
-    fmt.Printf("Translated to tempVar3\n")
-    for i := range tempVar {
-        fmt.Printf("%d: %s\n", i, tempVar3[i])
-    }
-    fmt.Printf("\n")
+    //fmt.Printf("Translated to tempVar3\n")
+    //for i := range tempVar {
+    //    fmt.Printf("%d: %s\n", i, tempVar3[i])
+    //}
+    //fmt.Printf("\n")
     
 
     // Rearrange based on ordering
@@ -105,7 +105,6 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         ch2[onodeIndex][0] = state.Mul(tempVar2[onodeIndex][0], tempVar3[0], topo.StitchingConsts[node][onodeIndex][0], q)
         for index := 1; index < len(ch2[onodeIndex]); index++ {
             tempVar2[onodeIndex][index] = state.Get2DArrayVarName("peerExport2", onodeIndex, index)
-            fmt.Printf("About to set when multiplying %s (\"%s\" * \"%s\")\n", tempVar2[onodeIndex][index], tempVar3[index], topo.StitchingConsts[node][onodeIndex][index])
             defer state.DeleteTmpValue(tempVar2[onodeIndex][index], q)
             ch2[onodeIndex][index] = state.Mul(tempVar2[onodeIndex][index], tempVar3[index], topo.StitchingConsts[node][onodeIndex][index], q)
         }
@@ -114,7 +113,6 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     for i := range ch2 {
         for j := range ch2[i] {
             <- ch2[i][j]
-            fmt.Printf("Should have set when multiplying %s\n", tempVar2[i][j])
         }
     }
     //fmt.Printf("Rearranged\n")

@@ -85,6 +85,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         onode := topo.AdjacencyMatrix[node][i]
         link := topo.NodeToPortMap[node][onode]
         tempVar3[link] = tempVar[i][0]
+        fmt.Printf("(Node: %d) tempVar %d -> tempVar3 %d\n", node, i, link)
     }
     fmt.Printf("Translated to tempVar3\n")
     for i := range tempVar {

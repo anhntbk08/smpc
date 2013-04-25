@@ -15,7 +15,7 @@ func (state *InputPeerState) ComputeExportStitch (topo *Topology, node int64, re
     for i := range ch {
         for j := range ch[i] {
             <- ch[i][j]
-            fmt.Printf("CmpConst has set %s\n", result[j][ind])
+            fmt.Printf("CmpConst has set %s\n", result[i][j])
         }
     }
 }

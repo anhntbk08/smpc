@@ -97,7 +97,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     for i := range ch2 {
         for j := range ch2[i] {
             <- ch2[i][j]
-            fmt.Printf("Should have set when multiplying %s\n", tempVar2[onodeIndex][index])
+            fmt.Printf("Should have set when multiplying %s\n", tempVar2[i][j])
         }
     }
     //fmt.Printf("Rearranged\n")

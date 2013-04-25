@@ -73,6 +73,17 @@ func (state *ComputePeerState) ChannelForRequest (request RequestStepPair) (chan
     return ch
 }
 
+func (state *ComputePeerState) MaybeSendOnChannel (request RequestStepPair, intermediate *sproto.IntermediateData) {
+    state.ChannelLock.Lock()
+    defer state.ChannelLock.Unlock()
+    ch := state.ChannelMap[request]
+    if ch == nil {
+        state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
+        ch = state.ChannelMap[request]
+    }
+    ch <- intermediate
+}
+
 func (state *ComputePeerState) ReceiveFromPeers () {
     for {
         //fmt.Printf("Core is now waiting for messages\n")
@@ -85,14 +96,7 @@ func (state *ComputePeerState) ReceiveFromPeers () {
                     panic ("Could not read intermediate message")
                 }
                 key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
-                _ = state
-                _ = *key
-                _ = state.SquelchTraffic
-                _ = state.SquelchTraffic[*key]
-                if !state.SquelchTraffic[*key] {
-                    ch := state.ChannelForRequest(*key)
-                    ch <- intermediate
-                }
+                state.MaybeSendOnChannel (*key, intermediate)
         }
     }
 }

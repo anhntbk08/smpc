@@ -170,18 +170,18 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
     share1 := *action.Share1
     share0val, hasShare0val := state.SharesGet(share0)
     share1val, hasShare1val := state.SharesGet(share1)
-    fmt.Printf("Multiplying, will set %s\n", result)
+    //fmt.Printf("Multiplying, will set %s\n", result)
     rcode := *action.RequestCode
     if hasShare0val && hasShare1val {
         share := state.mul(share0val, share1val, rcode, 1)
-        fmt.Printf("Done multiplying, setting %s\n", result)
+        //fmt.Printf("Done multiplying, setting %s\n", result)
         state.SharesSet(result, share)
-        fmt.Printf("Done multiplying, done setting %s\n", result)
+        //fmt.Printf("Done multiplying, done setting %s\n", result)
         //fmt.Printf("Done multiplying\n")
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, 1))
         return state.okResponse(action.GetRequestCode())
     } else {
-        fmt.Printf("Not setting %s, could not find operands %s %v %s %v\n", result, share0, hasShare0val, share1, hasShare1val)
+        //fmt.Printf("Not setting %s, could not find operands %s %v %s %v\n", result, share0, hasShare0val, share1, hasShare1val)
     }
     return state.failResponse (action.GetRequestCode())
 }
@@ -291,9 +291,7 @@ func (state *ComputePeerState) CmpConst (action *sproto.Action) (*sproto.Respons
     val := *action.Value
     share0val, hasShare0Val := state.SharesGet(share0)
     rcode := *action.RequestCode
-    fmt.Printf("CmpConst called to set %s\n", result)
     if !hasShare0Val {
-        fmt.Printf("Failing CmpConst for %s, variable %s not found\n", result, share0)
         return state.failResponse (action.GetRequestCode())
     }
     res := core.Sub(val, share0val)

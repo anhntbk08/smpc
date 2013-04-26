@@ -126,7 +126,6 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     // state.Shares[share] = value
     // state.HasShare[share] = true
     resp := state.RedisClient.Set(share, value)
-    fmt.Printf("Setting share %s %d\n", share, value)
     if resp.Err != nil {
         fmt.Printf("Error setting %s\n", share)
     }

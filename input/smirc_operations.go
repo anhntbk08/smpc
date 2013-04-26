@@ -132,6 +132,7 @@ func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q 
         nhop := state.GetArrayVarName("NextHop", int(node)) 
         //func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
         now := time.Now()
+        fmt.Printf("Start computing export policies %d (%v)\n", node ,now.String())
         state.ComputeExportPolicies (topo, node, export, q)
         fmt.Printf("Done computing export policies (%v)\n", time.Since(now).String())
         //state.PrintArray(export, q)

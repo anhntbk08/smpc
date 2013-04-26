@@ -8,8 +8,18 @@ import (
         sproto "github.com/apanda/smpc/proto"
         "sync"
         redis "github.com/apanda/radix/redis"
+        "time"
         )
 var _ = fmt.Println
+
+func keepAlive () {
+    for {
+        fmt.Printf("Alive now at %v\n", time.Now().String())
+        time.Sleep(30 * time.Second)
+    }
+
+}
+
 type RequestStepPair struct {
     Request int64
     Step int32
@@ -141,56 +151,56 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
     var resp *sproto.Response
     switch *action.Action {
         case sproto.Action_Set:
-            //fmt.Println("Dispatching SET")
+            fmt.Println("Dispatching SET")
             resp = state.SetValue(action)
         case sproto.Action_Add:
-            //fmt.Println("Dispatching ADD")
+            fmt.Println("Dispatching ADD")
             resp = state.Add(action)
         case sproto.Action_Retrieve:
-            //fmt.Println("Retrieving value")
+            fmt.Println("Retrieving value")
             resp = state.GetValue(action)
         case sproto.Action_Mul:
-            //fmt.Println("Dispatching mul")
+            fmt.Println("Dispatching mul")
             resp = state.Mul(action)
             //fmt.Println("Return from mul")
         case sproto.Action_Cmp:
-            //fmt.Println("Dispatching CMP")
+            fmt.Println("Dispatching CMP")
             resp = state.Cmp(action)
             //fmt.Println("Return from cmp")
         case sproto.Action_Neq:
-            //fmt.Println("Dispatching NEQ")
+            fmt.Println("Dispatching NEQ")
             resp = state.Neq(action)
             //fmt.Println("Return from NEQ")
         case sproto.Action_Eqz:
-            //fmt.Println("Dispatching EQZ")
+            fmt.Println("Dispatching EQZ")
             resp = state.Eqz(action)
             //fmt.Println("Returning from EQZ")
         case sproto.Action_Neqz:
-            //fmt.Println("Dispatching NEQZ")
+            fmt.Println("Dispatching NEQZ")
             resp = state.Neqz(action)
             //fmt.Println("Returning from NEQZ")
         case sproto.Action_Del:
-            //fmt.Println("Dispatching DEL")
+            fmt.Println("Dispatching DEL")
             resp = state.RemoveValue(action)
             //fmt.Println("Return from DEL")
         case sproto.Action_OneSub:
             //fmt.Println("Dispatching 1SUB")
             resp = state.OneSub(action)
-            //fmt.Println("Return from 1SUB")
+            fmt.Println("Return from 1SUB")
         case sproto.Action_CmpConst:
-            //fmt.Println("Dispatching CmpConst")
+            fmt.Println("Dispatching CmpConst")
             resp = state.CmpConst(action)
             //fmt.Println("Returning from CmpConst")
         case sproto.Action_NeqConst:
-            //fmt.Println("Dispatching NeqConst")
+            fmt.Println("Dispatching NeqConst")
             resp = state.NeqConst(action)
             //fmt.Println("Returning from NeqConst")
         case sproto.Action_MulConst:
-            //fmt.Println("Dispatching MulConst")
+            fmt.Println("Dispatching MulConst")
             resp = state.MulConst(action)
             //fmt.Println("Returning from MulConst")
         default:
-            //fmt.Println("Unimplemented action")
+            fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)
     }
     respB := ResponseToMsg(resp)
@@ -325,6 +335,7 @@ func main() {
     signal.Notify(os_channel)
     end_channel := make(chan int)
     go EventLoop(config, *client, end_channel)
+    go keepAlive()
     var status = 0
     select {
         case <- os_channel:

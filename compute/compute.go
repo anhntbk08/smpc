@@ -288,6 +288,9 @@ func EventLoop (config *string, client int, q chan int) {
     defer func() {
         state.SubSock.Close()
         state.CoordSock.Close()
+        for idx := range state.PeerOutSocks {
+            state.PeerOutSocks[idx].Close()
+        }
         ctx.Close()
         //fmt.Println("Closed socket")
     }()

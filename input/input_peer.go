@@ -173,6 +173,7 @@ func main() {
                 os.Exit(status)
             case sig := <- os_channel:
                 if sig == os.Interrupt || sig == os.Kill {
+                    fmt.Printf("Received signal %v, dying\n", sig)
                     os.Exit(status)
                 }
         }

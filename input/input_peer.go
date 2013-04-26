@@ -116,15 +116,16 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     go state.MessageLoop() 
     ready <- true
     // Handle errors from here on out
-    select {
-        case err = <- state.CoordChannel.Errors():
-            fmt.Println("Coordination error", err)
-        case err = <- state.PubChannel.Errors():
-            fmt.Println("Publishing error", err)
-        // Do nothing
+    for {
+        select {
+            case err = <- state.CoordChannel.Errors():
+                fmt.Println("Coordination error", err)
+            case err = <- state.PubChannel.Errors():
+                fmt.Println("Publishing error", err)
+            // Do nothing
+        }
     }
 
-    q <- 1
     defer func() {
         state.PubSock.Close()
         state.CoordSock.Close()
@@ -170,8 +171,10 @@ func main() {
             case status = <- end_channel: 
                 fmt.Printf("Exiting for some reason internal to us")
                 os.Exit(status)
-            case <- os_channel:
-                os.Exit(status)
+            case sig := <- os_channel:
+                if sig == os.Interrupt || sig == os.Kill {
+                    os.Exit(status)
+                }
         }
     }
 }

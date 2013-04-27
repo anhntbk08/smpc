@@ -132,19 +132,19 @@ func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q 
         nhop := state.GetArrayVarName("NextHop", int(node)) 
         //func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
         now := time.Now()
-        fmt.Printf("Start computing export policies %d (%v)\n", node ,now.String())
+        fmt.Printf("Starting round for %d (%v)\n", node ,now.String())
         state.ComputeExportPolicies (topo, node, export, q)
-        fmt.Printf("Done computing export policies %d (%v)\n", node, time.Since(now).String())
+        //fmt.Printf("Done computing export policies %d (%v)\n", node, time.Since(now).String())
         //state.PrintArray(export, q)
         // fmt.Printf("Indices for node %d: ", node)
         //state.PrintArray(topo.IndicesNode[node], q)
         //func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
         //fmt.Printf("Starting ArgMax\n")
         now = time.Now()
-        fmt.Printf("Start computing argmax %d (%v)\n", node ,now.String())
+        //fmt.Printf("Start computing argmax %d (%v)\n", node ,now.String())
         ch := state.ArgMax(nhop, topo.IndicesNode[node], export, q)
         <- ch
-        fmt.Printf("Done computing argmax %d (%v)\n", node, time.Since(now).String())
+        fmt.Printf("Done round for %d (%v)\n", node, time.Since(now).String())
         ch2 <- nhop
     }()
     return ch2

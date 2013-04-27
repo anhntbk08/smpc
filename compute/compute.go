@@ -151,52 +151,52 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
     var resp *sproto.Response
     switch *action.Action {
         case sproto.Action_Set:
-            fmt.Println("Dispatching SET")
+            //fmt.Printl("Dispatching SET")
             resp = state.SetValue(action)
         case sproto.Action_Add:
-            fmt.Println("Dispatching ADD")
+            //fmt.Printl("Dispatching ADD")
             resp = state.Add(action)
         case sproto.Action_Retrieve:
-            fmt.Println("Retrieving value")
+            //fmt.Println("Retrieving value")
             resp = state.GetValue(action)
         case sproto.Action_Mul:
-            fmt.Println("Dispatching mul")
+            //fmt.Printl("Dispatching mul")
             resp = state.Mul(action)
             //fmt.Println("Return from mul")
         case sproto.Action_Cmp:
-            fmt.Println("Dispatching CMP")
+            //fmt.Printl("Dispatching CMP")
             resp = state.Cmp(action)
             //fmt.Println("Return from cmp")
         case sproto.Action_Neq:
-            fmt.Println("Dispatching NEQ")
+            //fmt.Printl("Dispatching NEQ")
             resp = state.Neq(action)
             //fmt.Println("Return from NEQ")
         case sproto.Action_Eqz:
-            fmt.Println("Dispatching EQZ")
+            //fmt.Printl("Dispatching EQZ")
             resp = state.Eqz(action)
             //fmt.Println("Returning from EQZ")
         case sproto.Action_Neqz:
-            fmt.Println("Dispatching NEQZ")
+            //fmt.Printl("Dispatching NEQZ")
             resp = state.Neqz(action)
             //fmt.Println("Returning from NEQZ")
         case sproto.Action_Del:
-            fmt.Println("Dispatching DEL")
+            //fmt.Printl("Dispatching DEL")
             resp = state.RemoveValue(action)
             //fmt.Println("Return from DEL")
         case sproto.Action_OneSub:
-            //fmt.Println("Dispatching 1SUB")
+            //fmt.Printl("Dispatching 1SUB")
             resp = state.OneSub(action)
-            fmt.Println("Return from 1SUB")
+            //fmt.Println("Return from 1SUB")
         case sproto.Action_CmpConst:
-            fmt.Println("Dispatching CmpConst")
+            //fmt.Printl("Dispatching CmpConst")
             resp = state.CmpConst(action)
             //fmt.Println("Returning from CmpConst")
         case sproto.Action_NeqConst:
-            fmt.Println("Dispatching NeqConst")
+            //fmt.Printl("Dispatching NeqConst")
             resp = state.NeqConst(action)
             //fmt.Println("Returning from NeqConst")
         case sproto.Action_MulConst:
-            fmt.Println("Dispatching MulConst")
+            //fmt.Printl("Dispatching MulConst")
             resp = state.MulConst(action)
             //fmt.Println("Returning from MulConst")
         default:

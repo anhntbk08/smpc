@@ -128,6 +128,8 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     }
 
     defer func() {
+        state.CoordChannel.Close()
+        state.PubChannel.Close()
         state.PubSock.Close()
         state.CoordSock.Close()
         ctx.Close()

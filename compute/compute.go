@@ -276,9 +276,11 @@ func EventLoop (config *string, client int, q chan int) {
                 return
             }
             state.PeerOutChannels[index] = state.PeerOutSocks[index].ChannelsBuffer(BUFFER_SIZE)
+            defer state.PeerOutChannels[index].Close()
         }
     }
     state.PeerInChannel = state.PeerInSock.Channels()
+    defer state.PeerInChannel.Close()
     go state.ReceiveFromPeers()
     state.Sync(q)
     state.IntermediateSync(q)
@@ -296,6 +298,8 @@ func EventLoop (config *string, client int, q chan int) {
     fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
 
     defer func() {
+        state.CoordChannel.Close()
+        state.SubChannel.Close()
         state.SubSock.Close()
         state.CoordSock.Close()
         for idx := range state.PeerOutSocks {

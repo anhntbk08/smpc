@@ -126,7 +126,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
 }
 
 func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q chan int) (chan string) {
-    ch2 := make(chan string, 1) 
+    ch2 := make(chan string, INITIAL_CHANNEL_SIZE) 
     go func() {
         export := state.CreateDumbArray(len(topo.AdjacencyMatrix[node]), "export")
         nhop := state.GetArrayVarName("NextHop", int(node)) 

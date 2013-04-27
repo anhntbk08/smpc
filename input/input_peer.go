@@ -25,6 +25,7 @@ type InputPeerState struct {
 }
 
 const INITIAL_MAP_CONSTANT int = 1000
+const INITIAL_CHANNEL_SIZE int = 10
 
 func (state *InputPeerState) InitPeerState (clients int) {
     state.ComputeSlaves = make([][]byte, clients)
@@ -146,11 +147,11 @@ func main() {
     state := make([]*InputPeerState, len(configs))
     coordinate_channel := make([]chan bool, len(configs))
     fmt.Printf("Config files :%s\n", *config)
-    end_channel := make(chan int, 1)
+    end_channel := make(chan int, INITIAL_CHANNEL_SIZE)
     var status = 0
     for i := range configs {
         state[i] = &InputPeerState{}
-        coordinate_channel[i] = make(chan bool)
+        coordinate_channel[i] = make(chan bool, INITIAL_CHANNEL_SIZE)
         state[i].ClusterID = int64(i) 
         go EventLoop(&configs[i], state[i], end_channel, coordinate_channel[i])
     }

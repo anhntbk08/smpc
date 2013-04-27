@@ -5,7 +5,7 @@ import (
         )
 
 func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q chan int) (chan bool) {
-    done := make(chan bool, 1) //Buffer to avoid hangs
+    done := make(chan bool, INITIAL_CHANNEL_SIZE) //Buffer to avoid hangs
     mungingConst := atomic.AddInt64(&state.RequestID, 1) 
     go func() {
         //tmpVar := Sprintf("__FanInOrForSmirc_%d_tmp", mungingConst)
@@ -34,7 +34,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
 }
 
 func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
-    done := make(chan bool, 1)
+    done := make(chan bool, INITIAL_CHANNEL_SIZE)
     go func() {
 
         if len(indices) != len(values) {

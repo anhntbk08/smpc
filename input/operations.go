@@ -6,9 +6,8 @@ import (
         "code.google.com/p/goprotobuf/proto"
         "sync/atomic"
         )
-const ChannelSize int = 10
 func (state *InputPeerState) SetRawValue (name string, shares []int64, requestID int64, q chan int) {
-    status := make(chan *sproto.Response, ChannelSize)
+    status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
     state.SetChannelForRequest(requestID, status)
     for index, value := range state.ComputeSlaves {
         var err error
@@ -45,7 +44,7 @@ func (state *InputPeerState) SetRawValue (name string, shares []int64, requestID
 
 /* Set value */
 func (state *InputPeerState) SetValue (name string, value int64, q chan int) (chan bool) {
-    done := make(chan bool, 1) // Buffered so we can be done even if no one is listening
+    done := make(chan bool, INITIAL_CHANNEL_SIZE) // Buffered so we can be done even if no one is listening
     requestID := atomic.AddInt64(&state.RequestID, 1)
     go func() {
         shares := core.DistributeSecret(value, int32(len(state.ComputeSlaves)))
@@ -57,7 +56,7 @@ func (state *InputPeerState) SetValue (name string, value int64, q chan int) (ch
 }
 
 func (state *InputPeerState) GetRawValue (name string, requestID int64,  q chan int) ([]int64, int, []bool) {
-    status := make(chan *sproto.Response, ChannelSize)
+    status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
     state.SetChannelForRequest(requestID, status)
     for _, value := range state.ComputeSlaves {
         var err error
@@ -128,7 +127,7 @@ func (state *InputPeerState) Add (result string, left string, right string, q ch
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -162,7 +161,7 @@ func (state *InputPeerState) Mul (result string, left string, right string, q ch
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -197,7 +196,7 @@ func (state *InputPeerState) Cmp (result string, left string, right string, q ch
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -232,7 +231,7 @@ func (state *InputPeerState) Neq (result string, left string, right string, q ch
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -266,7 +265,7 @@ func (state *InputPeerState) Neqz (result string, left string, q chan int) (chan
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -299,7 +298,7 @@ func (state *InputPeerState) Eqz (result string, left string, q chan int) (chan 
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -332,7 +331,7 @@ func (state *InputPeerState) OneSub (result string, left string, q chan int) (ch
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -365,7 +364,7 @@ func (state *InputPeerState) DelValue (result string,  q chan int) (chan bool) {
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -397,7 +396,7 @@ func (state *InputPeerState) CmpConst (result string, left string, val int64, q 
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -431,7 +430,7 @@ func (state *InputPeerState) NeqConst (result string, left string, val int64, q 
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")
@@ -465,7 +464,7 @@ func (state *InputPeerState) MulConst (result string, left string, val int64, q 
     done := make(chan bool, 1) //Buffer to avoid hangs
     go func() {
         requestID := atomic.AddInt64(&state.RequestID, 1) 
-        status := make(chan *sproto.Response, ChannelSize)
+        status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
         state.SetChannelForRequest(requestID, status)
         msg := make([][]byte, 2)
         msg[0] = []byte("CMD")

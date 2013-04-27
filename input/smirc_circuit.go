@@ -1,6 +1,7 @@
 package main
 import (
         "fmt"
+        topology "github.com/apanda/smpc/topology"
         "time"
         )
 func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channel chan int) {
@@ -8,9 +9,9 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
     val := int64(0)
     _ = val
     fmt.Printf("Starting circuit (parsing json)\n")
-    jsonTopo := ParseJsonTopology(topoFile)  
+    jsonTopo := topology.ParseJsonTopology(topoFile)  
     fmt.Printf("Done parsing json\n")
-    topo := jsonTopo.MakeTopology(state, end_channel)
+    topo := MakeTopology(jsonTopo, state, end_channel)
     if dest != 0 {
         ch := state.SetValue(topo.NextHop[dest], dest, end_channel)
         <- ch

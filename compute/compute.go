@@ -82,15 +82,18 @@ func (state *ComputePeerState) ChannelForRequest (request RequestStepPair) (chan
     state.ChannelLock.Lock()
     //fmt.Printf("Channel requested for %d %d (acquired lock)\n", request.Request, request.Step)
     defer state.ChannelLock.Unlock()
-    ch := state.ChannelMap[request]
-    //fmt.Printf("Channel requested for %d %d (found in map)\n", request.Request, request.Step)
-    if ch == nil {
-        state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
-        //fmt.Printf("Channel requested for %d %d (created channel)\n", request.Request, request.Step)
-        ch = state.ChannelMap[request]
-    }
-    //fmt.Printf("Channel requested for %d %d (returning)\n", request.Request, request.Step)
-    return ch
+    if !state.SquelchTraffic[request] {
+        ch := state.ChannelMap[request]
+        //fmt.Printf("Channel requested for %d %d (found in map)\n", request.Request, request.Step)
+        if ch == nil {
+            state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
+            //fmt.Printf("Channel requested for %d %d (created channel)\n", request.Request, request.Step)
+            ch = state.ChannelMap[request]
+        }
+        //fmt.Printf("Channel requested for %d %d (returning)\n", request.Request, request.Step)
+        return ch
+    } 
+    return nil
 }
 
 func (state *ComputePeerState) MaybeSendOnChannel (request RequestStepPair, intermediate *sproto.IntermediateData) {
@@ -113,12 +116,13 @@ func (state *ComputePeerState) MaybeSendOnChannel (request RequestStepPair, inte
 }
 
 func (state *ComputePeerState) ReceiveFromPeers () {
-    now := time.Now()
+    defer state.PeerInChannel.Close()
+    keepaliveCh := make(chan bool, 1)
+    go func(ch chan bool) {
+        time.Sleep(5 * time.Second)
+        ch <- true
+    }(keepaliveCh)
     for {
-        if time.Since(now) > 5 * time.Minute {
-            fmt.Printf("Receive from peers alive\n")
-            now = time.Now()
-        }
         //fmt.Printf("Core is now waiting for messages\n")
         select {
             case msg := <- state.PeerInChannel.In():
@@ -130,6 +134,9 @@ func (state *ComputePeerState) ReceiveFromPeers () {
                 }
                 key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
                 state.MaybeSendOnChannel (*key, intermediate)
+            case <- keepaliveCh:
+                fmt.Printf("ReceiveFromPeers is alive\n")
+            
         }
     }
 }
@@ -309,7 +316,6 @@ func EventLoop (config *string, client int, q chan int) {
         }
     }
     state.PeerInChannel = state.PeerInSock.Channels()
-    defer state.PeerInChannel.Close()
     go state.ReceiveFromPeers()
     state.Sync(q)
     state.IntermediateSync(q)
@@ -331,12 +337,12 @@ func EventLoop (config *string, client int, q chan int) {
         ctx.Close()
         //fmt.Println("Closed socket")
     }()
-    now := time.Now()
+    keepaliveCh := make(chan bool, 1)
+    go func(ch chan bool) {
+        time.Sleep(5 * time.Second)
+        ch <- true
+    }(keepaliveCh)
     for true {
-        if time.Since(now) > 5 * time.Minute {
-            fmt.Printf("Receive from peers alive\n")
-            now = time.Now()
-        }
         //fmt.Println("Starting to wait")
         select {
             case msg := <- state.SubChannel.In():
@@ -353,6 +359,8 @@ func EventLoop (config *string, client int, q chan int) {
                 //fmt.Println("Error in CoordChannel", err)
                 q <- 1
                 return
+            case <- keepaliveCh:
+                fmt.Printf("Sub and coord channel receive alive\n")
         }
     }
     q <- 0

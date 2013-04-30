@@ -119,8 +119,10 @@ func (state *ComputePeerState) ReceiveFromPeers () {
     defer state.PeerInChannel.Close()
     keepaliveCh := make(chan bool, 1)
     go func(ch chan bool) {
-        time.Sleep(5 * time.Second)
-        ch <- true
+        for {
+            time.Sleep(1 * time.Second)
+            ch <- true
+        }
     }(keepaliveCh)
     for {
         //fmt.Printf("Core is now waiting for messages\n")
@@ -265,38 +267,45 @@ func EventLoop (config *string, client int, q chan int) {
         //fmt.Println("Error creating 0mq context: ", err)
         q <- 1
     }
+    fmt.Println("ZMQ context created")
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
     state.SubSock, err = ctx.Socket(zmq.Sub)
     if err != nil {
         //fmt.Println("Error creating PUB socket: ", err)
         q <- 1
     }
+    fmt.Println("SUB socket connection created")
     err = state.SubSock.Connect(configStruct.PubAddress)
     if err != nil {
         //fmt.Println("Error binding PUB socket: ", err)
         q <- 1
     }
+    fmt.Println("SUB socket connected")
     // Establish coordination socket
     state.CoordSock, err = ctx.Socket(zmq.Dealer)
     if err != nil {
         //fmt.Println("Error creating Dealer socket: ", err)
         q <- 1
     }
+    fmt.Println("Coord socket created")
     err = state.CoordSock.Connect(configStruct.ControlAddress)
     if err != nil {
         //fmt.Println("Error connecting  ", err)
         q <- 1
     }
+    fmt.Println("Coord socket connected")
     state.PeerInSock, err = ctx.Socket(zmq.Router)
     if err != nil {
         //fmt.Println("Error creating peer router socket: ", err)
         q <- 1
     }
+    fmt.Println("PeerIn socket created")
     err = state.PeerInSock.Bind(configStruct.Clients[client]) // Set up something to listen to peers
     if err != nil {
         //fmt.Println("Error binding peer router socket")
         q <- 1
     }
+    fmt.Println("PeerIn socket bound")
     for index, value := range configStruct.Clients {
         if index != client {
             state.PeerOutSocks[index], err= ctx.Socket(zmq.Dealer)
@@ -315,9 +324,12 @@ func EventLoop (config *string, client int, q chan int) {
             defer state.PeerOutChannels[index].Close()
         }
     }
+    fmt.Println("PeerOut sockets created and connected")
     state.PeerInChannel = state.PeerInSock.Channels()
+    fmt.Println("Calling from ReceiveFromPeers")
     go state.ReceiveFromPeers()
     state.Sync(q)
+    fmt.Println("Sync finished")
     state.IntermediateSync(q)
     state.SubSock.Subscribe([]byte("CMD"))
     //fmt.Println("Receiving")
@@ -339,8 +351,10 @@ func EventLoop (config *string, client int, q chan int) {
     }()
     keepaliveCh := make(chan bool, 1)
     go func(ch chan bool) {
-        time.Sleep(5 * time.Second)
-        ch <- true
+        for {
+            time.Sleep(1 * time.Second)
+            ch <- true
+        }
     }(keepaliveCh)
     for true {
         //fmt.Println("Starting to wait")

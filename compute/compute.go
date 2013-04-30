@@ -9,12 +9,13 @@ import (
         "sync"
         redis "github.com/apanda/radix/redis"
         "time"
+         "runtime/pprof"
         )
 var _ = fmt.Println
 
 func keepAlive () {
     for {
-        fmt.Printf("Alive now at %v\n", time.Now().String())
+        //fmt.Printf("Alive now at %v\n", time.Now().String())
         time.Sleep(30 * time.Second)
     }
 
@@ -66,36 +67,58 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
 const BUFFER_SIZE int = 10
 
 func (state *ComputePeerState) UnregisterChannelForRequest (request RequestStepPair) {
+    //fmt.Printf("Deleting channel %d %d\n", request.Request, request.Step)
     state.ChannelLock.Lock()
+    //fmt.Printf("Deleting channel (acquired lock) %d %d\n", request.Request, request.Step)
     defer state.ChannelLock.Unlock()
+    //fmt.Printf("Deleting channel (wrote to squelch) %d %d\n", request.Request, request.Step)
     state.SquelchTraffic[request] = true
     delete(state.ChannelMap, request)
+    //fmt.Printf("Deleting channel (returning) %d %d\n", request.Request, request.Step)
 }
 
 func (state *ComputePeerState) ChannelForRequest (request RequestStepPair) (chan *sproto.IntermediateData) {
+    //fmt.Printf("Channel requested for %d %d\n", request.Request, request.Step)
     state.ChannelLock.Lock()
+    //fmt.Printf("Channel requested for %d %d (acquired lock)\n", request.Request, request.Step)
     defer state.ChannelLock.Unlock()
     ch := state.ChannelMap[request]
+    //fmt.Printf("Channel requested for %d %d (found in map)\n", request.Request, request.Step)
     if ch == nil {
         state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
+        //fmt.Printf("Channel requested for %d %d (created channel)\n", request.Request, request.Step)
         ch = state.ChannelMap[request]
     }
+    //fmt.Printf("Channel requested for %d %d (returning)\n", request.Request, request.Step)
     return ch
 }
 
 func (state *ComputePeerState) MaybeSendOnChannel (request RequestStepPair, intermediate *sproto.IntermediateData) {
+    //fmt.Printf("MaybeSendOnChannel requested for %d %d\n", request.Request, request.Step)
     state.ChannelLock.Lock()
+    //fmt.Printf("MaybeSendOnChannel requested for %d %d (acquired lock)\n", request.Request, request.Step)
     defer state.ChannelLock.Unlock()
-    ch := state.ChannelMap[request]
-    if ch == nil {
-        state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
-        ch = state.ChannelMap[request]
+    if !state.SquelchTraffic[request] {
+        ch := state.ChannelMap[request]
+        //fmt.Printf("MaybeSendOnChannel requested for %d %d (found in map)\n", request.Request, request.Step)
+        if ch == nil {
+            state.ChannelMap[request] = make(chan *sproto.IntermediateData, INITIAL_CHANNEL_CAPACITY)
+            //fmt.Printf("MaybeSendOnChannel requested for %d %d (created channel)\n", request.Request, request.Step)
+            ch = state.ChannelMap[request]
+        }
+        //fmt.Printf("MaybeSendOnChannel requested for %d %d (found)\n", request.Request, request.Step)
+        ch <- intermediate
+        //fmt.Printf("MaybeSendOnChannel requested for %d %d (returning sent)\n", request.Request, request.Step)
     }
-    ch <- intermediate
 }
 
 func (state *ComputePeerState) ReceiveFromPeers () {
+    now := time.Now()
     for {
+        if time.Since(now) > 5 * time.Minute {
+            fmt.Printf("Receive from peers alive\n")
+            now = time.Now()
+        }
         //fmt.Printf("Core is now waiting for messages\n")
         select {
             case msg := <- state.PeerInChannel.In():
@@ -151,54 +174,54 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
     var resp *sproto.Response
     switch *action.Action {
         case sproto.Action_Set:
-            //fmt.Printl("Dispatching SET")
+           //fmt.Println("Dispatching SET")
             resp = state.SetValue(action)
         case sproto.Action_Add:
-            //fmt.Printl("Dispatching ADD")
+           //fmt.Println("Dispatching ADD")
             resp = state.Add(action)
         case sproto.Action_Retrieve:
-            //fmt.Println("Retrieving value")
+           //fmt.Println("Retrieving value")
             resp = state.GetValue(action)
         case sproto.Action_Mul:
-            //fmt.Printl("Dispatching mul")
+           //fmt.Println("Dispatching mul")
             resp = state.Mul(action)
             //fmt.Println("Return from mul")
         case sproto.Action_Cmp:
-            //fmt.Printl("Dispatching CMP")
+           //fmt.Println("Dispatching CMP")
             resp = state.Cmp(action)
             //fmt.Println("Return from cmp")
         case sproto.Action_Neq:
-            //fmt.Printl("Dispatching NEQ")
+           //fmt.Println("Dispatching NEQ")
             resp = state.Neq(action)
             //fmt.Println("Return from NEQ")
         case sproto.Action_Eqz:
-            //fmt.Printl("Dispatching EQZ")
+           //fmt.Println("Dispatching EQZ")
             resp = state.Eqz(action)
             //fmt.Println("Returning from EQZ")
         case sproto.Action_Neqz:
-            //fmt.Printl("Dispatching NEQZ")
+           //fmt.Println("Dispatching NEQZ")
             resp = state.Neqz(action)
             //fmt.Println("Returning from NEQZ")
         case sproto.Action_Del:
-            //fmt.Printl("Dispatching DEL")
+           //fmt.Println("Dispatching DEL")
             resp = state.RemoveValue(action)
             //fmt.Println("Return from DEL")
         case sproto.Action_OneSub:
-            //fmt.Printl("Dispatching 1SUB")
+           //fmt.Println("Dispatching 1SUB")
             resp = state.OneSub(action)
             //fmt.Println("Return from 1SUB")
         case sproto.Action_CmpConst:
-            //fmt.Printl("Dispatching CmpConst")
+           //fmt.Println("Dispatching CmpConst")
             resp = state.CmpConst(action)
-            //fmt.Println("Returning from CmpConst")
+           //fmt.Println("Returning from CmpConst")
         case sproto.Action_NeqConst:
-            //fmt.Printl("Dispatching NeqConst")
+           //fmt.Println("Dispatching NeqConst")
             resp = state.NeqConst(action)
-            //fmt.Println("Returning from NeqConst")
+           //fmt.Println("Returning from NeqConst")
         case sproto.Action_MulConst:
-            //fmt.Printl("Dispatching MulConst")
+           //fmt.Println("Dispatching MulConst")
             resp = state.MulConst(action)
-            //fmt.Println("Returning from MulConst")
+           //fmt.Println("Returning from MulConst")
         default:
             fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)
@@ -223,6 +246,12 @@ func (state *ComputePeerState) ActionMsg (msg [][]byte) {
 func EventLoop (config *string, client int, q chan int) {
     configStruct := ParseConfig(config, q) 
     state := MakeComputePeerState(client, len(configStruct.Clients)) 
+    redisConfig := redis.DefaultConfig()
+    redisConfig.Network = "tcp"
+    redisConfig.Address = configStruct.Databases[client].Address
+    redisConfig.Database = configStruct.Databases[client].Database
+    state.RedisClient = redis.NewClient(redisConfig)
+    fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
     // Create the 0MQ context
     ctx, err := zmq.NewContext()
     if err != nil {
@@ -290,12 +319,6 @@ func EventLoop (config *string, client int, q chan int) {
     // not thread safe. Hence first sync, then get channels
     state.SubChannel = state.SubSock.ChannelsBuffer(BUFFER_SIZE)
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE)
-    redisConfig := redis.DefaultConfig()
-    redisConfig.Network = "tcp"
-    redisConfig.Address = configStruct.Databases[client].Address
-    redisConfig.Database = configStruct.Databases[client].Database
-    state.RedisClient = redis.NewClient(redisConfig)
-    fmt.Printf("Using redis at %s with db %d\n", configStruct.Databases[client].Address,configStruct.Databases[client].Database)
 
     defer func() {
         state.CoordChannel.Close()
@@ -308,7 +331,12 @@ func EventLoop (config *string, client int, q chan int) {
         ctx.Close()
         //fmt.Println("Closed socket")
     }()
+    now := time.Now()
     for true {
+        if time.Since(now) > 5 * time.Minute {
+            fmt.Printf("Receive from peers alive\n")
+            now = time.Now()
+        }
         //fmt.Println("Starting to wait")
         select {
             case msg := <- state.SubChannel.In():
@@ -334,12 +362,22 @@ func main() {
     // Start up by setting up a flag for the configuration file
     config := flag.String("config", "conf", "Configuration file")
     client := flag.Int("peer", 0, "Input peer")
+    cpuprof := flag.String("cpuprofile", "", "write cpu profile")
     flag.Parse()
+    if *cpuprof != "" {
+        f, err := os.Create(*cpuprof)
+        if err != nil {
+            fmt.Printf("Error: %v\n", err)
+            os.Exit(1)
+        }
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     end_channel := make(chan int)
     go EventLoop(config, *client, end_channel)
-    go keepAlive()
+    //go keepAlive()
     var status = 0
     select {
         case <- os_channel:

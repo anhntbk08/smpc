@@ -121,13 +121,19 @@ func (state *ComputePeerState) DefaultAction (action *sproto.Action) (*sproto.Re
 }
 
 func (state *ComputePeerState) mul (share0 int64, share1 int64, rcode int64, step int32) (int64) {
+   //fmt.Printf("Attempting to mul for %d %d\n", rcode, step)
+    ch := state.ChannelForRequest(*MakeRequestStep(rcode, step))
+   //fmt.Printf("Making input array for %d %d\n", rcode, step)
     inputs := make([]int64, state.NumClients)
+   //fmt.Printf("Computing mult shares for %d %d\n", rcode, step)
     outputs := core.MultShares(share0, share1, int32(state.NumClients)) // Output start distributing
+   //fmt.Printf("Setting self share for %d %d\n", rcode, step)
     inputs[state.Client] = outputs[state.Client]
     for k := 0; k < state.NumClients; k++ {
        if k == state.Client {
            continue
        }
+      //fmt.Printf("Sending share to %d for %d %d\n", k, rcode, step)
        intermediate := &sproto.IntermediateData{}
        rcodee := rcode
        intermediate.RequestCode = &rcodee
@@ -139,20 +145,19 @@ func (state *ComputePeerState) mul (share0 int64, share1 int64, rcode int64, ste
        intermediate.Data = &outputs[k]
        //fmt.Printf("Sending %d -> %d\n", state.Client, k)
        m := IntermediateToMsg(intermediate)
+      //fmt.Printf("Done creating share %d for %d %d\n", k, rcode, step)
        if m == nil {
            panic("Error with intermediate\n")
        }
+      //fmt.Printf("Sending intermediate for mul for %d %d\n", rcode, step)
        state.PeerOutChannels[k].Out() <- m
     }
     //fmt.Println("Done sending multiplication data")
     responses := 1 // We already have our own response
-    ch := state.ChannelForRequest(*MakeRequestStep(rcode, step))
     for responses < state.NumClients {
-        //fmt.Printf("waiting for %d intermediate data now\n", state.NumClients - responses)
+       //fmt.Printf("waiting for %d intermediate data now %d %d\n", state.NumClients - responses, rcode, step)
         var intermediate *sproto.IntermediateData
-        select {
-            case intermediate = <- ch:
-        }
+        intermediate = <- ch
         //fmt.Printf("Mul received %d->%d\n", *intermediate.Client, state.Client)
         responses += 1
         inputs[*intermediate.Client] = *intermediate.Data
@@ -191,13 +196,16 @@ func (state* ComputePeerState) neqz (val int64, rcode int64) (int64) {
     exponent := core.LargePrime - 1 // We are going to raise the number to this power. 
     res := int64(1)
     step := int32(0)
+   //fmt.Printf("Computing neqz for rcode %d\n", rcode)
     for exponent > 0 {
         if (exponent & 1 == 1) {
+           //fmt.Printf("Computing neqz (mul) for rcode %d, step %d\n", rcode, step)
             res = state.mul(res, val, rcode, step)
             state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
             step += 1
         }
         exponent >>= 1
+       //fmt.Printf("Computing neqz (mul) for rcode %d, step %d\n", rcode, step)
         val = state.mul(val, val, rcode, step)
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
         step += 1
@@ -294,10 +302,15 @@ func (state *ComputePeerState) CmpConst (action *sproto.Action) (*sproto.Respons
     if !hasShare0Val {
         return state.failResponse (action.GetRequestCode())
     }
+   //fmt.Printf("For rcode %d (CMPCONST) subtracting\n", rcode)
     res := core.Sub(val, share0val)
+   //fmt.Printf("For rcode %d (CMPCONST) neqz\n", rcode)
     res = state.neqz(res, rcode)
+   //fmt.Printf("For rcode %d (CMPCONST) done with neqz\n", rcode)
     one := int64(1)
+   //fmt.Printf("For rcode %d (CMPCONST) subtracting\n", rcode)
     res = core.Sub(one, res)
+   //fmt.Printf("For rcode %d (CMPCONST) setting share\n", rcode)
     state.SharesSet(result, res)
     //fmt.Printf("Done comparing to const\n")
     return state.okResponse(action.GetRequestCode())

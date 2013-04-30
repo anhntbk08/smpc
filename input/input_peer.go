@@ -9,6 +9,7 @@ import (
         "os/signal"
         "sync"
         "strings"
+         "runtime/pprof"
         )
 
 type InputPeerState struct {
@@ -142,7 +143,17 @@ func main() {
     config := flag.String("config", "conf", "Configuration file")
     topoFile := flag.String("topo", "", "Topology file")
     dest := flag.Int64("dest", 0, "Destination")
+    cpuprof := flag.String("cpuprofile", "", "write cpu profile")
     flag.Parse()
+    if *cpuprof != "" {
+        f, err := os.Create(*cpuprof)
+        if err != nil {
+            fmt.Printf("Error: %v\n", err)
+            os.Exit(1)
+        }
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     configs := strings.Split(*config, " ")

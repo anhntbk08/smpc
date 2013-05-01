@@ -155,6 +155,7 @@ func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q 
         <- ch
         fmt.Printf("Done round for %d (%v)\n", node, time.Since(now).String())
         ch2 <- nhop
+        fmt.Printf("Notified channel for %d (%v)\n", node, ch2)
     }()
     return ch2
 }

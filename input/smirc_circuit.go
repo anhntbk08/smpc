@@ -31,7 +31,7 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         }
         for i  := range topo.AdjacencyMatrix {
             nnhop[i] = <- ch[i]
-            fmt.Printf("Waiting for %d (assigned to %d)\n", i, int(i) % len(states))
+            fmt.Printf("Waiting for %d (assigned to %d) %v\n", i, int(i) % len(states), ch[i])
         }
         topo.NextHop = nnhop
         elapsed += (time.Since(t).Seconds())

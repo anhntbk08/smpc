@@ -25,7 +25,7 @@ func (state *InputPeerState) ComputeExportStitch (topo *Topology, node int64, re
 func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
     ch := make([][]chan bool, len(topo.IndicesLink[node]))
     tempVar := make([][]string, len(topo.IndicesLink[node]))
-    //fmt.Printf("For node %d computing what is nexthop (Step 1)\n", node)
+    fmt.Printf("For node %d computing what is nexthop (Step 1)\n", node)
     // First start by computing what is the next hop
     for index := range topo.AdjacencyMatrix[node] {
         otherNode := topo.AdjacencyMatrix[node][index]
@@ -49,7 +49,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     //state.PrintMatrix(tempVar, q)
     //fmt.Printf("\n")
 
-    //fmt.Printf("For node %d computing export policies (Step 2)\n", node)
+    fmt.Printf("For node %d computing export policies (Step 2)\n", node)
     // Compute the export policies based on next hop
     for index := range topo.AdjacencyMatrix[node] {
         otherNode := topo.AdjacencyMatrix[node][index]
@@ -75,7 +75,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     //fmt.Printf("\n")
 
     // Extract a single export vector
-    //fmt.Printf("For node %d combining export policies (Step 3)\n", node)
+    fmt.Printf("For node %d combining export policies (Step 3)\n", node)
     state.CascadingAdd(tempVar, q)
     //fmt.Printf("After cascading add\n")
     //for i := range tempVar {
@@ -100,7 +100,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     //fmt.Printf("\n")
     
 
-    //fmt.Printf("For node %d rearranging based on import policy (Step 4)\n", node)
+    fmt.Printf("For node %d rearranging based on import policy (Step 4)\n", node)
     // Rearrange based on ordering
     tempVar2 := make([][]string, len(topo.IndicesLink[node]))
     ch2 := make([][]chan bool, len(topo.IndicesLink[node]))
@@ -125,7 +125,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
     //fmt.Printf("Rearranged\n")
     //state.PrintMatrix(tempVar2, q)
     //fmt.Printf("\n")
-    //fmt.Printf("For node %d combining for answer (Step 5)\n", node)
+    fmt.Printf("For node %d combining for answer (Step 5)\n", node)
     state.CascadingAdd(tempVar2, q)
     //fmt.Printf("Final\n")
     //state.PrintMatrix(tempVar2, q)
@@ -140,9 +140,9 @@ func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q 
         //func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, result []string, q chan int) {
         now := time.Now()
         fmt.Printf("Starting round for %d (%v)\n", node ,now.String())
-        //fmt.Printf("Begining computing export policies %d\n", node)
+        fmt.Printf("Begining computing export policies %d\n", node)
         state.ComputeExportPolicies (topo, node, export, q)
-        //fmt.Printf("Finished computing export policies %d\n", node)
+        fmt.Printf("Finished computing export policies %d\n", node)
         //fmt.Printf("Done computing export policies %d (%v)\n", node, time.Since(now).String())
         //state.PrintArray(export, q)
         // fmt.Printf("Indices for node %d: ", node)
@@ -150,7 +150,7 @@ func (state *InputPeerState) RunSingleIteration (topo *Topology,  node int64, q 
         //func (state *InputPeerState) ArgMax (result string, indices []string, values []string, q chan int) (chan bool) {
         //fmt.Printf("Starting ArgMax\n")
         //fmt.Printf("Start computing argmax %d (%v)\n", node ,now.String())
-        //fmt.Printf("Begining computing arg max %d\n", node)
+        fmt.Printf("Begining computing arg max %d\n", node)
         ch := state.ArgMax(nhop, topo.IndicesNode[node], export, q)
         <- ch
         fmt.Printf("Done round for %d (%v)\n", node, time.Since(now).String())

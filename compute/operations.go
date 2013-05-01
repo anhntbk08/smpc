@@ -143,22 +143,22 @@ func (state *ComputePeerState) mul (share0 int64, share1 int64, rcode int64, ste
        client := int32(state.Client)
        intermediate.Client = &client
        intermediate.Data = &outputs[k]
-       //fmt.Printf("Sending %d -> %d\n", state.Client, k)
+       fmt.Printf("Sending %d -> %d (%d %d)\n", state.Client, k, rcode, step)
        m := IntermediateToMsg(intermediate)
-      //fmt.Printf("Done creating share %d for %d %d\n", k, rcode, step)
+       //fmt.Printf("Done creating share %d for %d %d\n", k, rcode, step)
        if m == nil {
            panic("Error with intermediate\n")
        }
-      //fmt.Printf("Sending intermediate for mul for %d %d\n", rcode, step)
+      fmt.Printf("Sending intermediate for mul for %d %d\n", rcode, step)
        state.PeerOutChannels[k].Out() <- m
     }
     //fmt.Println("Done sending multiplication data")
     responses := 1 // We already have our own response
     for responses < state.NumClients {
-       //fmt.Printf("waiting for %d intermediate data now %d %d\n", state.NumClients - responses, rcode, step)
+        fmt.Printf("waiting for %d intermediate data now %d %d\n", state.NumClients - responses, rcode, step)
         var intermediate *sproto.IntermediateData
         intermediate = <- ch
-        //fmt.Printf("Mul received %d->%d\n", *intermediate.Client, state.Client)
+        fmt.Printf("Mul received %d->%d (%d %d)\n", *intermediate.Client, state.Client, rcode, step)
         responses += 1
         inputs[*intermediate.Client] = *intermediate.Data
     }
@@ -196,20 +196,23 @@ func (state* ComputePeerState) neqz (val int64, rcode int64) (int64) {
     exponent := core.LargePrime - 1 // We are going to raise the number to this power. 
     res := int64(1)
     step := int32(0)
-   //fmt.Printf("Computing neqz for rcode %d\n", rcode)
+    fmt.Printf("Computing neqz for rcode %d\n", rcode)
     for exponent > 0 {
         if (exponent & 1 == 1) {
-           //fmt.Printf("Computing neqz (mul) for rcode %d, step %d\n", rcode, step)
+            fmt.Printf("Computing neqz (mul) for rcode %d, step %d\n", rcode, step)
             res = state.mul(res, val, rcode, step)
+            fmt.Printf("Done computing neqz (mul) for rcode %d, step %d\n", rcode, step)
             state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
             step += 1
         }
         exponent >>= 1
-       //fmt.Printf("Computing neqz (mul) for rcode %d, step %d\n", rcode, step)
+        fmt.Printf("Computing neqz (mul) for rcode %d, step %d\n", rcode, step)
         val = state.mul(val, val, rcode, step)
+        fmt.Printf("Done computing neqz (mul) for rcode %d, step %d\n", rcode, step)
         state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
         step += 1
     }
+    fmt.Printf("Done computing neqz %d\n", rcode)
     return res
 }
 

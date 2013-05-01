@@ -178,7 +178,7 @@ func main() {
             case status = <- end_channel: 
                 os.Exit(status)
             case <- os_channel:
-                os.Exit(status)
+                panic("signal")
         }
     }
     fmt.Printf("All reported in, going to start\n")
@@ -189,11 +189,7 @@ func main() {
                 fmt.Printf("Exiting for some reason internal to us")
                 os.Exit(status)
             case sig := <- os_channel:
-                panic("Error")
-                if sig == os.Interrupt || sig == os.Kill {
-                    fmt.Printf("Received signal %v, dying\n", sig)
-                    os.Exit(status)
-                }
+                panic("signal")
         }
     }
 }

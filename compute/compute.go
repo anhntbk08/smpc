@@ -10,6 +10,7 @@ import (
         redis "github.com/apanda/radix/redis"
         "time"
          "runtime/pprof"
+         "runtime"
         )
 var _ = fmt.Println
 
@@ -64,7 +65,7 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     return state
 }
 
-const BUFFER_SIZE int = 10
+const BUFFER_SIZE int = 1000
 
 func (state *ComputePeerState) UnregisterChannelForRequest (request RequestStepPair) {
     //fmt.Printf("Deleting channel %d %d\n", request.Request, request.Step)
@@ -331,12 +332,16 @@ func EventLoop (config *string, client int, q chan int) {
     state.Sync(q)
     fmt.Println("Sync finished")
     state.IntermediateSync(q)
+    fmt.Println("IntermediateSync finished")
+    fmt.Printf("Subscribing to CMD\n")
     state.SubSock.Subscribe([]byte("CMD"))
+    fmt.Printf("Done subscribing to CMD\n")
     //fmt.Println("Receiving")
     // We cannot create channels before finalizing the set of subscriptions, since sockets are
     // not thread safe. Hence first sync, then get channels
     state.SubChannel = state.SubSock.ChannelsBuffer(BUFFER_SIZE)
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE)
+    fmt.Println("Created CoordChannel and SubChannel")
 
     defer func() {
         state.CoordChannel.Close()
@@ -356,8 +361,13 @@ func EventLoop (config *string, client int, q chan int) {
             ch <- true
         }
     }(keepaliveCh)
+    fmt.Println("Start waiting for messages")
+    once := false
     for true {
-        //fmt.Println("Starting to wait")
+        if !once {
+            fmt.Println("Starting to wait for sub and coord channel")
+            once = true
+        }
         select {
             case msg := <- state.SubChannel.In():
                 //fmt.Println("Message on SubChannel")
@@ -382,6 +392,7 @@ func EventLoop (config *string, client int, q chan int) {
 
 func main() {
     // Start up by setting up a flag for the configuration file
+    runtime.GOMAXPROCS(runtime.NumCPU())
     config := flag.String("config", "conf", "Configuration file")
     client := flag.Int("peer", 0, "Input peer")
     cpuprof := flag.String("cpuprofile", "", "write cpu profile")
@@ -403,6 +414,7 @@ func main() {
     var status = 0
     select {
         case <- os_channel:
+            panic("Signal")
         case status = <- end_channel: 
     }
     // <-signal_channel

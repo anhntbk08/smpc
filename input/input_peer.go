@@ -10,8 +10,10 @@ import (
         "sync"
         "strings"
          "runtime/pprof"
+         "time"
+         "runtime"
         )
-
+var _ = time.Now
 type InputPeerState struct {
     ClusterID int64
     ComputeSlaves [][]byte
@@ -26,7 +28,7 @@ type InputPeerState struct {
 }
 
 const INITIAL_MAP_CONSTANT int = 1000
-const INITIAL_CHANNEL_SIZE int = 10
+const INITIAL_CHANNEL_SIZE int = 100
 
 func (state *InputPeerState) InitPeerState (clients int) {
     state.ComputeSlaves = make([][]byte, clients)
@@ -71,7 +73,7 @@ func (state *InputPeerState) MessageLoop () {
     }
 }
 
-const BUFFER_SIZE int = 10
+const BUFFER_SIZE int = 1000
 /* The main event loop */
 func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bool) {
     // Create the 0MQ context
@@ -139,6 +141,7 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
 }
 
 func main() {
+    runtime.GOMAXPROCS(runtime.NumCPU())
     // Start up by setting up a flag for the Configuration file
     config := flag.String("config", "conf", "Configuration file")
     topoFile := flag.String("topo", "", "Topology file")
@@ -154,7 +157,7 @@ func main() {
         pprof.StartCPUProfile(f)
         defer pprof.StopCPUProfile()
     }
-    os_channel := make(chan os.Signal)
+    os_channel := make(chan os.Signal, 2)
     signal.Notify(os_channel)
     configs := strings.Split(*config, " ")
     state := make([]*InputPeerState, len(configs))
@@ -186,6 +189,7 @@ func main() {
                 fmt.Printf("Exiting for some reason internal to us")
                 os.Exit(status)
             case sig := <- os_channel:
+                panic("Error")
                 if sig == os.Interrupt || sig == os.Kill {
                     fmt.Printf("Received signal %v, dying\n", sig)
                     os.Exit(status)

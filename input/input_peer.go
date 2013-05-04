@@ -154,6 +154,7 @@ func main() {
             fmt.Printf("Error: %v\n", err)
             os.Exit(1)
         }
+        defer f.close()
         pprof.StartCPUProfile(f)
         defer pprof.StopCPUProfile()
     }

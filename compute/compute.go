@@ -409,30 +409,30 @@ func main() {
         defer pprof.StopCPUProfile()
     }
     var memf *os.File = nil
-    if *memprof != "" {
-         var err error = nil
-         memf, err = os.Create(*memprof)
-         if err != nil {
-             fmt.Printf("Error %v\n", err)
-             os.Exit(1)
-         }
-         defer memf.Close()
-    }
+    //if *memprof != "" {
+    //     var err error = nil
+    //     memf, err = os.Create(*memprof)
+    //     if err != nil {
+    //         fmt.Printf("Error %v\n", err)
+    //         os.Exit(1)
+    //     }
+    //     defer memf.Close()
+    //}
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     end_channel := make(chan int)
     go EventLoop(config, *client, end_channel)
     //go keepAlive()
     memProf := make(chan bool)
-    if memf != nil {
-        go func() {
-            for {
-                time.Sleep(100 * time.Millisecond)
-                memProf <- true
-            }
+    //if memf != nil {
+    //    go func() {
+    //        for {
+    //            time.Sleep(100 * time.Millisecond)
+    //            memProf <- true
+    //        }
 
-        }()
-    }
+    //    }()
+    //}
     for {
         select {
             case <- os_channel:

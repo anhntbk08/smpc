@@ -408,6 +408,7 @@ func main() {
         pprof.StartCPUProfile(f)
         defer pprof.StopCPUProfile()
     }
+    _ = memprof
     var memf *os.File = nil
     //if *memprof != "" {
     //     var err error = nil

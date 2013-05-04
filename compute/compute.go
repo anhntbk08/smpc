@@ -396,6 +396,7 @@ func main() {
     config := flag.String("config", "conf", "Configuration file")
     client := flag.Int("peer", 0, "Input peer")
     cpuprof := flag.String("cpuprofile", "", "write cpu profile")
+    memprof := flag.String("memprofile", "", "write mem profile")
     flag.Parse()
     if *cpuprof != "" {
         f, err := os.Create(*cpuprof)
@@ -407,15 +408,39 @@ func main() {
         pprof.StartCPUProfile(f)
         defer pprof.StopCPUProfile()
     }
+    var memf *os.File = nil
+    if *memprof != "" {
+         var err error = nil
+         memf, err = os.Create(*memprof)
+         if err != nil {
+             fmt.Printf("Error %v\n", err)
+         }
+         defer memf.Close()
+    }
     os_channel := make(chan os.Signal)
     signal.Notify(os_channel)
     end_channel := make(chan int)
     go EventLoop(config, *client, end_channel)
     //go keepAlive()
-    select {
-        case <- os_channel:
-            return
-        case <- end_channel: 
+    memProf := make(chan bool)
+    go func() {
+        for {
+            time.Sleep(1 * time.Millisecond)
+            memProf <- true
+        }
+
+    }()
+    for {
+        select {
+            case <- os_channel:
+                return
+            case <- end_channel: 
+                return
+            case <- memProf:
+                if memf != nil {
+                    pprof.WriteHeapProfile(memf)
+                }
+        }
     }
     // <-signal_channel
     return

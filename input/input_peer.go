@@ -154,9 +154,15 @@ func main() {
             fmt.Printf("Error: %v\n", err)
             os.Exit(1)
         }
-        defer f.Close()
+        defer func() {
+            fmt.Printf("Closing cpuprof file\n")
+            f.Close()
+        }()
         pprof.StartCPUProfile(f)
-        defer pprof.StopCPUProfile()
+        defer func() {
+            fmt.Printf("Stopping CPU profiling\n")
+            pprof.StopCPUProfile()
+        }()
     }
     os_channel := make(chan os.Signal, 2)
     signal.Notify(os_channel)
@@ -177,7 +183,7 @@ func main() {
             case <- coordinate_channel[ch]:
                 continue
             case status = <- end_channel: 
-                os.Exit(status)
+                return
             case <- os_channel:
                 panic("signal")
         }
@@ -188,7 +194,7 @@ func main() {
         select {
             case status = <- end_channel: 
                 fmt.Printf("Exiting for some reason internal to us")
-                os.Exit(status)
+                return
             case <- os_channel:
                 panic("signal")
         }

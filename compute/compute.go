@@ -412,13 +412,12 @@ func main() {
     end_channel := make(chan int)
     go EventLoop(config, *client, end_channel)
     //go keepAlive()
-    var status = 0
     select {
         case <- os_channel:
-            panic("Signal")
-        case status = <- end_channel: 
+            return
+        case <- end_channel: 
     }
     // <-signal_channel
-    os.Exit(status)
+    return
 }
 

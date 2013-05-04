@@ -172,6 +172,7 @@ func main() {
     fmt.Printf("Config files :%s\n", *config)
     end_channel := make(chan int, INITIAL_CHANNEL_SIZE)
     var status = 0
+    _ = status
     for i := range configs {
         state[i] = &InputPeerState{}
         coordinate_channel[i] = make(chan bool, INITIAL_CHANNEL_SIZE)

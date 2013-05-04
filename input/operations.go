@@ -5,6 +5,7 @@ import (
         "fmt"
         "code.google.com/p/goprotobuf/proto"
         "sync/atomic"
+        "runtime"
         )
 func (state *InputPeerState) SetRawValue (name string, shares []int64, requestID int64, q chan int) {
     status := make(chan *sproto.Response, INITIAL_CHANNEL_SIZE)
@@ -51,6 +52,7 @@ func (state *InputPeerState) SetValue (name string, value int64, q chan int) (ch
         //fmt.Println("Done setting")
         state.SetRawValue (name, shares, requestID, q)
         done <- true
+        runtime.Goexit()
     }()
     return done
 }
@@ -119,6 +121,7 @@ func (state *InputPeerState) GetValue (name string, q chan int) (chan int64){
         }  else {
             done <- int64(0)
         }
+        runtime.Goexit()
     }()
     return done
 }
@@ -152,7 +155,7 @@ func (state *InputPeerState) Add (result string, left string, right string, q ch
         }
         state.DelChannelForRequest(requestID)
         done <- true
-        return
+        runtime.Goexit()
     }()
     return done
 }
@@ -187,7 +190,7 @@ func (state *InputPeerState) Mul (result string, left string, right string, q ch
         }
         state.DelChannelForRequest(requestID)
         done <- true
-        return
+        runtime.Goexit()
     }()
     return done
 }
@@ -222,7 +225,7 @@ func (state *InputPeerState) Cmp (result string, left string, right string, q ch
         }
         state.DelChannelForRequest(requestID)
         done <- true
-        return
+        runtime.Goexit()
     }()
     return done
 }

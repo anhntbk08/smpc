@@ -65,14 +65,6 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
             <- ch[i][j]
         }
     }
-    //fmt.Printf("Before cascading add\n")
-    //for i := range tempVar {
-    //    fmt.Printf("%d: %s\n", i, tempVar[i][0])
-    //}
-    //fmt.Printf("\n")
-    //fmt.Printf("Export policies\n")
-    //state.PrintMatrix(tempVar, q)
-    //fmt.Printf("\n")
 
     // Extract a single export vector
     fmt.Printf("For node %d combining export policies (Step 3)\n", node)

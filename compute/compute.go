@@ -414,6 +414,7 @@ func main() {
          memf, err = os.Create(*memprof)
          if err != nil {
              fmt.Printf("Error %v\n", err)
+             os.Exit(1)
          }
          defer memf.Close()
     }
@@ -423,18 +424,22 @@ func main() {
     go EventLoop(config, *client, end_channel)
     //go keepAlive()
     memProf := make(chan bool)
-    go func() {
-        for {
-            time.Sleep(1 * time.Millisecond)
-            memProf <- true
-        }
+    if memf != nil {
+        go func() {
+            for {
+                time.Sleep(100 * time.Millisecond)
+                memProf <- true
+            }
 
-    }()
+        }()
+    }
     for {
         select {
             case <- os_channel:
+                fmt.Printf("OS Channel exit\n")
                 return
             case <- end_channel: 
+                fmt.Printf("End channel killing\n")
                 return
             case <- memProf:
                 if memf != nil {
@@ -442,6 +447,7 @@ func main() {
                 }
         }
     }
+    fmt.Printf("Exiting for some reason\n")
     // <-signal_channel
     return
 }

@@ -199,7 +199,8 @@ func main() {
             case status = <- end_channel: 
                 fmt.Printf("Exiting for some reason internal to us")
                 return
-            case <- os_channel:
+            case signal := <- os_channel:
+                fmt.Printf("signalling %v\n", signal)
                 panic("signal")
         }
     }

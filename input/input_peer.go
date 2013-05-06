@@ -74,6 +74,7 @@ func (state *InputPeerState) MessageLoop () {
 }
 
 const BUFFER_SIZE int = 1000
+const ZMQ_HWM uint64 = 1000000
 /* The main event loop */
 func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bool) {
     // Create the 0MQ context
@@ -87,6 +88,7 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     }
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
     state.PubSock, err = ctx.Socket(zmq.Pub)
+    state.PubSock.SetHWM(ZMQ_HWM)
     if err != nil {
         fmt.Println("Error creating PUB socket: ", err)
         q <- 1
@@ -100,13 +102,14 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     }
     // Establish coordination socket
     state.CoordSock, err = ctx.Socket(zmq.Router)
+    state.CoordSock.SetHWM(ZMQ_HWM)
     if err != nil {
         fmt.Println("Error creating REP socket: ", err)
         q <- 1
         return
     }
     // Strict error checking
-    state.CoordSock.SetRouterMandatory()
+    //state.CoordSock.SetRouterMandatory()
 
     err = state.CoordSock.Bind(state.Config.ControlAddress)
     if err != nil {

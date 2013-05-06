@@ -253,6 +253,7 @@ func (state *ComputePeerState) ActionMsg (msg [][]byte) {
     go state.DispatchAction(action, state.CoordChannel.Out())
 }
 
+const ZMQ_HWM uint64 = 1000000
 func EventLoop (config *string, client int, q chan int) {
     configStruct := ParseConfig(config, q) 
     state := MakeComputePeerState(client, len(configStruct.Clients)) 
@@ -271,6 +272,7 @@ func EventLoop (config *string, client int, q chan int) {
     fmt.Println("ZMQ context created")
     // Establish the PUB-SUB connection that will be used to direct all the computation clusters
     state.SubSock, err = ctx.Socket(zmq.Sub)
+    state.SubSock.SetHWM(ZMQ_HWM)
     if err != nil {
         //fmt.Println("Error creating PUB socket: ", err)
         q <- 1
@@ -284,6 +286,7 @@ func EventLoop (config *string, client int, q chan int) {
     fmt.Println("SUB socket connected")
     // Establish coordination socket
     state.CoordSock, err = ctx.Socket(zmq.Dealer)
+    state.CoordSock.SetHWM(ZMQ_HWM)
     if err != nil {
         //fmt.Println("Error creating Dealer socket: ", err)
         q <- 1
@@ -296,6 +299,7 @@ func EventLoop (config *string, client int, q chan int) {
     }
     fmt.Println("Coord socket connected")
     state.PeerInSock, err = ctx.Socket(zmq.Router)
+    state.PeerInSock.SetHWM(ZMQ_HWM)
     if err != nil {
         //fmt.Println("Error creating peer router socket: ", err)
         q <- 1
@@ -310,6 +314,7 @@ func EventLoop (config *string, client int, q chan int) {
     for index, value := range configStruct.Clients {
         if index != client {
             state.PeerOutSocks[index], err= ctx.Socket(zmq.Dealer)
+            state.PeerOutSocks[index].SetHWM(ZMQ_HWM)
             if err != nil {
                 //fmt.Println("Error creating dealer socket: ", err)
                 q <- 1

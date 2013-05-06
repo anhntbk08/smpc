@@ -74,7 +74,7 @@ func (state *InputPeerState) MessageLoop () {
 }
 
 const BUFFER_SIZE int = 1000
-const ZMQ_HWM int = 1000000
+const ZMQ_HWM int = int((^uint32(0) >> 1))
 /* The main event loop */
 func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bool) {
     // Create the 0MQ context

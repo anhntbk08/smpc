@@ -253,7 +253,7 @@ func (state *ComputePeerState) ActionMsg (msg [][]byte) {
     go state.DispatchAction(action, state.CoordChannel.Out())
 }
 
-const ZMQ_HWM int = 1000000
+const ZMQ_HWM int = int((^uint32(0) >> 1))
 func EventLoop (config *string, client int, q chan int) {
     configStruct := ParseConfig(config, q) 
     state := MakeComputePeerState(client, len(configStruct.Clients)) 

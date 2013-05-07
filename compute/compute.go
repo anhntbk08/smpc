@@ -119,12 +119,13 @@ func (state *ComputePeerState) MaybeSendOnChannel (request RequestStepPair, inte
 func (state *ComputePeerState) ReceiveFromPeers () {
     defer state.PeerInChannel.Close()
     keepaliveCh := make(chan bool, 1)
-    go func(ch chan bool) {
-        for {
-            time.Sleep(1 * time.Second)
-            ch <- true
-        }
-    }(keepaliveCh)
+    _ = keepaliveCh
+    //go func(ch chan bool) {
+    //    for {
+    //        time.Sleep(1 * time.Second)
+    //        ch <- true
+    //    }
+    //}(keepaliveCh)
     for {
         //fmt.Printf("Core is now waiting for messages\n")
         select {
@@ -360,12 +361,13 @@ func EventLoop (config *string, client int, q chan int) {
         //fmt.Println("Closed socket")
     }()
     keepaliveCh := make(chan bool, 1)
-    go func(ch chan bool) {
-        for {
-            time.Sleep(1 * time.Second)
-            ch <- true
-        }
-    }(keepaliveCh)
+    //go func(ch chan bool) {
+    //    for {
+    //        time.Sleep(1 * time.Second)
+    //        ch <- true
+    //    }
+    //}(keepaliveCh)
+    _ = keepaliveCh
     fmt.Println("Start waiting for messages")
     once := false
     for true {

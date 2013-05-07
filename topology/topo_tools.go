@@ -12,6 +12,7 @@ type JsonTopology struct {
     ExportTables map[string] [][]int64 
     IndicesLink map[string] []int64
     IndicesNode map[string] []int64
+    StitchingConsts map[string] [][]int64
 }
 
 func ParseJsonTopology (config *string) (*JsonTopology) {

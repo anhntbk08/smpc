@@ -15,20 +15,17 @@ func (state *InputPeerState) CreateDumbArray (size int, name string) ([]string) 
     return array
 }
 
-func (state *InputPeerState) StoreArrayInSmpc (vals []int64, name string, q chan int) ([]string) {
+func (state *InputPeerState) StoreArrayInSmpc (vals []int64, name string, q chan int) ([]string, []chan bool) {
     array := make([]string, len(vals))
     chans := make([]chan bool, len(vals))
     for i := 0; i < len(vals); i++ {
         array[i] = state.GetArrayVarName(name, i)
         chans[i] = state.SetValue(array[i], vals[i], q)
     }
-    for ch := range chans {
-        <- chans[ch]
-    }
-    return array
+    return array, chans
 }
 
-func (state *InputPeerState) Store2DArrayInSmpc (vals [][]int64, name string, q chan int) ([][]string) {
+func (state *InputPeerState) Store2DArrayInSmpc (vals [][]int64, name string, q chan int) ([][]string, [][]chan bool) {
     strings := make([][]string, len(vals))
     chans := make([][]chan bool, len(vals))
     for i := 0; i < len(vals); i++ {
@@ -39,12 +36,7 @@ func (state *InputPeerState) Store2DArrayInSmpc (vals [][]int64, name string, q 
             chans[i][j] = state.SetValue(strings[i][j], vals[i][j], q)
         }
     }
-    for i := range chans {
-        for j := range chans[i] {
-            <- chans[i][j]
-        }
-    }
-    return strings
+    return strings, chans
 }
 
 func (state *InputPeerState) Store3DArrayInSmpc (vals [][][]int64, name string, q chan int) ([][][]string) {

@@ -7,7 +7,8 @@ import (
 
 var _ = fmt.Printf
 
-func MakeTopology (json *topology.JsonTopology, state *InputPeerState, q chan int) (*Topology) {
+func MakeTopology (json *topology.JsonTopology, states []*InputPeerState, q chan int) (*Topology) {
+    state := states[0]
     nodes := len(json.AdjacencyMatrix)
     topo := &Topology{}
     topo.InitTopology (nodes)
@@ -35,40 +36,54 @@ func MakeTopology (json *topology.JsonTopology, state *InputPeerState, q chan in
     }
 
     fmt.Printf("Storing export tables\n")
-
+    exportChans := make([][][]chan bool, len(json.ExportTables))
     for node := range json.ExportTables {
         nint32, _  := strconv.Atoi(node)
         nint := int64(nint32)
-        topo.Exports[nint] = state.Store2DArrayInSmpc(json.ExportTables[node], fmt.Sprintf("export_%s", node), q)
+        topo.Exports[nint], exportChans[nint32 - 1] = states[nint32 % len(states)].Store2DArrayInSmpc(json.ExportTables[node], fmt.Sprintf("export_%s", node), q)
     }
 
-    fmt.Printf("Storing preferences\n")
+    for idx := range exportChans {
+        for idxi := range exportChans[idx] {
+            for idxj := range exportChans[idx][idxi] {
+                <- exportChans[idx][idxi][idxj]
+            }
+        }
+    }
+
+    fmt.Printf("Storing stitching consts and preferences\n")
     
     for node := range json.IndicesLink {
         nint32, _  := strconv.Atoi(node)
         nint := int64(nint32)
-        topo.IndicesLink[nint] = state.StoreArrayInSmpc(json.IndicesLink[node], fmt.Sprintf("inlink_%s", node), q)
-        topo.IndicesNode[nint] = state.StoreArrayInSmpc(json.IndicesNode[node], fmt.Sprintf("innode_%s", node), q)
+        var chansLink []chan bool
+        var chansNode []chan bool
+        var chansStitching [][]chan bool
+        topo.IndicesLink[nint], chansLink = states[nint32 % len(states)].StoreArrayInSmpc(json.IndicesLink[node], fmt.Sprintf("inlink_%s", node), q)
+        topo.IndicesNode[nint], chansNode = states[nint32 % len(states)].StoreArrayInSmpc(json.IndicesNode[node], fmt.Sprintf("innode_%s", node), q)
+        topo.StitchingConsts[nint], chansStitching = states[nint32 % len(states)].Store2DArrayInSmpc(json.StitchingConsts[node], fmt.Sprintf("stitching_%s", node), q)
+        for idx := range chansLink {
+            <- chansLink[idx]
+            <- chansNode[idx]
+        }
+        for idxi := range chansStitching {
+            for idxj := range chansStitching[idxi] {
+                <- chansStitching[idxi][idxj]
+            }
+        }
     }
-
-    fmt.Printf("Storing Next hop, and computing stitching constants\n")
+    fmt.Printf("Done storing stitching consts and preferences\n")
+    fmt.Printf("Storing Next hop\n")
     nextHop := state.CreateDumbArray(nodes, "nhop")
     ch := make([]chan bool, nodes)
     for i := int64(1); i < int64(nodes) + 1; i++ {
-        topo.StitchingConsts[i] = make([][]string, len(topo.IndicesLink[i]))
-        for j := range topo.IndicesLink[i] {
-            topo.StitchingConsts[i][j] = make([]string, len(topo.IndicesLink[i]))
-            for k := range topo.IndicesLink[i] {
-                topo.StitchingConsts[i][j][k] = state.Get3DArrayVarName("stitching", int(i), j, k)
-            }
-        }
-        state.ComputeExportStitch(topo, i, topo.StitchingConsts[i], q)
-        ch[i - 1] = state.SetValue(nextHop[i-1], 0, q)
+        ch[i - 1] = states[int(i) % len(states)].SetValue(nextHop[i-1], 0, q)
         topo.NextHop[i] = nextHop[i - 1]
     }
     for c := range ch {
         <- ch[c]
     }
+    fmt.Printf("Done storing Next Hop\n")
     return topo
 }
 
@@ -105,6 +120,7 @@ func (topo *Topology) InitTopology (nodes int) {
     }
 }
 
+/*
 func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
     topo := &Topology {}
     topo.InitTopology (4)
@@ -178,4 +194,4 @@ func (state *InputPeerState) MakeTestTopology (q chan int) (*Topology) {
     topo.Exports[4] = state.Store2DArrayInSmpc([][]int64 { []int64 {0, 0, 0, 0}, []int64 {0, 0, 1, 1}, []int64 {0, 1, 0, 0}, []int64 {0, 1,0,0}}, "export4", q)
     return topo
 }
-
+*/

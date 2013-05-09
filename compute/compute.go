@@ -11,6 +11,7 @@ import (
         "time"
          "runtime/pprof"
          "runtime"
+         "strings"
         )
 var _ = fmt.Println
 
@@ -151,6 +152,10 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     // val := state.Shares[share]
     // has := state.HasShare[share]
     r0 :=  state.RedisClient.Get(share)
+    for r0.Type == redis.ReplyError && strings.HasSuffix(r0.Err.Error(), "EOF") {
+        r0 = state.RedisClient.Get(share)
+        fmt.Printf("EOF, retrying get\n")
+    }
     isNil := false
     if r0 == nil {
         isNil = true
@@ -171,6 +176,10 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     // state.Shares[share] = value
     // state.HasShare[share] = true
     resp := state.RedisClient.Set(share, value)
+    for resp.Type == redis.ReplyError && strings.HasSuffix(resp.Err.Error(), "EOF") {
+        resp = state.RedisClient.Set(share, value)
+        fmt.Printf("EOF, retrying set\n")
+    }
     if resp.Err != nil {
         fmt.Printf("Error setting %s %v\n", share, resp.Err)
         panic("Error setting value")

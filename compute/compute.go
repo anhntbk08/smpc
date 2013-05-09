@@ -158,6 +158,7 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     r, err := r0.Int64()
     if err != nil {
         fmt.Printf("Error %s: %v %v %v %v\n", share, err, isNil, r0.Type, r0.Err)
+        panic("Error reading value")
     }
     return r, (err == nil)
 }
@@ -172,6 +173,7 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     resp := state.RedisClient.Set(share, value)
     if resp.Err != nil {
         fmt.Printf("Error setting %s %v\n", share, resp.Err)
+        panic("Error setting value")
     }
 }
 

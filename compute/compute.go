@@ -152,9 +152,14 @@ func (state *ComputePeerState) SharesGet (share string) (int64, bool) {
     // val := state.Shares[share]
     // has := state.HasShare[share]
     r0 :=  state.RedisClient.Get(share)
+    retryCount := 0
     for r0.Type == redis.ReplyError && strings.HasSuffix(r0.Err.Error(), "EOF") {
+        retryCount++
         r0 = state.RedisClient.Get(share)
-        fmt.Printf("EOF, retrying get\n")
+        fmt.Printf("EOF, retrying get (%d so far)\n", retryCount)
+    }
+    if retryCount > 0 {
+        fmt.Printf("EOF retried %d times\n", retryCount)
     }
     isNil := false
     if r0 == nil {
@@ -176,9 +181,14 @@ func (state *ComputePeerState) SharesSet (share string, value int64) {
     // state.Shares[share] = value
     // state.HasShare[share] = true
     resp := state.RedisClient.Set(share, value)
+    retryCount := 0
     for resp.Type == redis.ReplyError && strings.HasSuffix(resp.Err.Error(), "EOF") {
+        retryCount++
         resp = state.RedisClient.Set(share, value)
-        fmt.Printf("EOF, retrying set\n")
+        fmt.Printf("EOF, retrying seti (%d so far)\n", retryCount)
+    }
+    if retryCount > 0 {
+        fmt.Printf("EOF retried %d times\n", retryCount)
     }
     if resp.Err != nil {
         fmt.Printf("Error setting %s %v\n", share, resp.Err)

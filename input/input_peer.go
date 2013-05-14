@@ -44,8 +44,8 @@ func (state *InputPeerState) InitPeerState (clients int) {
     state.PubNaggleChannel = make(chan *sproto.Action)
 }
 
-const NAGGLE_SIZE int = 1000
-const NAGGLE_MULT time.Duration = time.Duration(5)
+const NAGGLE_SIZE int = 100
+const NAGGLE_MULT time.Duration = time.Duration(1)
 func ActionToCoordChannelMessage (action *sproto.Action, index int) (*CoordChannelMessage) {
     coordMessage := &CoordChannelMessage{}
     coordMessage.Index = index

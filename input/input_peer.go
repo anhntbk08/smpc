@@ -109,7 +109,7 @@ func (state *InputPeerState) NagglePubChannel () {
                 occupied++
                 if occupied >= NAGGLE_SIZE {
                     bufferSend++
-                    fmt.Printf("Buffer over, sending\n")
+                    //fmt.Printf("Buffer over, sending\n")
                     send()
                 } else if !timerRunning {
                     timerRunning = true
@@ -118,7 +118,7 @@ func (state *InputPeerState) NagglePubChannel () {
             case <- timerChan:
                 timerSend++
                 timerRunning = false
-                fmt.Printf("Timer going off, sending\n")
+                //fmt.Printf("Timer going off, sending\n")
                 send()
         }
     }
@@ -160,7 +160,7 @@ func (state *InputPeerState) NaggleCoordChannel () {
                 occupied[idx]++
                 if occupied[idx] >= NAGGLE_SIZE {
                     bufferSend++
-                    fmt.Printf("Buffer over, sending\n")
+                    //fmt.Printf("Buffer over, sending\n")
                     send()
                 } else if !timerRunning {
                     timerRunning = true
@@ -170,7 +170,7 @@ func (state *InputPeerState) NaggleCoordChannel () {
             case <- timerChan:
                 timerSend++
                 timerRunning = false
-                fmt.Printf("Timr going off, sending\n")
+                //fmt.Printf("Timr going off, sending\n")
                 send()
         }
     }

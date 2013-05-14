@@ -304,6 +304,54 @@ func (this *IntermediateData) GetData() int64 {
 	return 0
 }
 
+type IntermediateNaggledData struct {
+	Messages         []*IntermediateData `protobuf:"bytes,1,rep,name=messages" json:"messages,omitempty"`
+	XXX_unrecognized []byte              `json:"-"`
+}
+
+func (this *IntermediateNaggledData) Reset()         { *this = IntermediateNaggledData{} }
+func (this *IntermediateNaggledData) String() string { return proto1.CompactTextString(this) }
+func (*IntermediateNaggledData) ProtoMessage()       {}
+
+func (this *IntermediateNaggledData) GetMessages() []*IntermediateData {
+	if this != nil {
+		return this.Messages
+	}
+	return nil
+}
+
+type NaggledAction struct {
+	Messages         []*Action `protobuf:"bytes,1,rep,name=messages" json:"messages,omitempty"`
+	XXX_unrecognized []byte    `json:"-"`
+}
+
+func (this *NaggledAction) Reset()         { *this = NaggledAction{} }
+func (this *NaggledAction) String() string { return proto1.CompactTextString(this) }
+func (*NaggledAction) ProtoMessage()       {}
+
+func (this *NaggledAction) GetMessages() []*Action {
+	if this != nil {
+		return this.Messages
+	}
+	return nil
+}
+
+type NaggledResponse struct {
+	Messages         []*Response `protobuf:"bytes,1,rep,name=messages" json:"messages,omitempty"`
+	XXX_unrecognized []byte      `json:"-"`
+}
+
+func (this *NaggledResponse) Reset()         { *this = NaggledResponse{} }
+func (this *NaggledResponse) String() string { return proto1.CompactTextString(this) }
+func (*NaggledResponse) ProtoMessage()       {}
+
+func (this *NaggledResponse) GetMessages() []*Response {
+	if this != nil {
+		return this.Messages
+	}
+	return nil
+}
+
 func init() {
 	proto1.RegisterEnum("proto.Action_Action", Action_Action_name, Action_Action_value)
 	proto1.RegisterEnum("proto.Response_Status", Response_Status_name, Response_Status_value)

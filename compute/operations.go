@@ -144,13 +144,17 @@ func (state *ComputePeerState) mul (share0 int64, share1 int64, rcode int64, ste
        intermediate.Client = &client
        intermediate.Data = &outputs[k]
        //fmt.Printf("Sending %d -> %d (%d %d)\n", state.Client, k, rcode, step)
-       m := IntermediateToMsg(intermediate)
-       //fmt.Printf("Done creating share %d for %d %d\n", k, rcode, step)
-       if m == nil {
-           panic("Error with intermediate\n")
-       }
-      //fmt.Printf("Sending intermediate for mul for %d %d\n", rcode, step)
-       state.PeerOutChannels[k].Out() <- m
+       //m := IntermediateToMsg(intermediate)
+       ////fmt.Printf("Done creating share %d for %d %d\n", k, rcode, step)
+       //if m == nil {
+       //    panic("Error with intermediate\n")
+       //}
+       ////fmt.Printf("Sending intermediate for mul for %d %d\n", rcode, step)
+       m := &IntermediateMessage{}
+       m.Client = k
+       m.Message = intermediate
+
+       state.PeerOutChannel <- m
     }
     //fmt.Println("Done sending multiplication data")
     responses := 1 // We already have our own response

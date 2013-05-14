@@ -48,3 +48,15 @@ message IntermediateData {
     required int32 step = 4;
     optional int64 data = 5;
 }
+
+message IntermediateNaggledData {
+    repeated IntermediateData messages = 1;
+}
+
+message NaggledAction {
+    repeated Action messages = 1;
+}
+
+message NaggledResponse {
+    repeated Response messages = 1;
+}

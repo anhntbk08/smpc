@@ -28,6 +28,11 @@ type RequestStepPair struct {
     Step int32
 }
 
+type  IntermediateMessage struct {
+    Client int
+    Message *sproto.IntermediateData
+}
+
 func MakeRequestStep (req int64, step int32) (ret *RequestStepPair) {
     ret = &RequestStepPair{}
     ret.Request = req
@@ -42,8 +47,10 @@ type ComputePeerState struct {
     PeerOutSocks map[int] *zmq.Socket
     SubChannel *zmq.Channels
     CoordChannel *zmq.Channels
+    CoordNaggleChannel chan *sproto.Response
     PeerInChannel *zmq.Channels
     PeerOutChannels map[int] *zmq.Channels
+    PeerOutChannel chan *IntermediateMessage
     RedisClient *redis.Client
     Client int
     NumClients int
@@ -61,12 +68,94 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     state.NumClients = numClients
     state.PeerOutSocks = make(map[int] *zmq.Socket, numClients)
     state.PeerOutChannels = make(map[int] *zmq.Channels, numClients)
+    state.PeerOutChannel = make(chan *IntermediateMessage, INITIAL_CHANNEL_CAPACITY * INITIAL_CHANNEL_CAPACITY * numClients)
     state.ChannelMap = make(map[RequestStepPair] chan *sproto.IntermediateData, INITIAL_MAP_CAPACITY)
     state.SquelchTraffic = make(map[RequestStepPair] bool, INITIAL_MAP_CAPACITY)
+    state.CoordNaggleChannel = make(chan *sproto.Response)
     return state
 }
 
 const BUFFER_SIZE int = 1000
+const NAGGLE_SIZE int = 1000
+const NAGGLE_MULT time.Duration = time.Duration(5)
+func (state *ComputePeerState) NaggleCoordChannel () {
+    NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
+    messageList := make([]*sproto.Response, NAGGLE_SIZE)
+    occupied := 0
+    timerRunning := false
+    timerChan := make(chan bool)
+    timerFunc := func () {
+        time.Sleep(NAGGLE_TIME)
+        timerChan <- true
+    }
+    send := func() {
+        if occupied > 0 {
+            msg := NaggledResponseToMsg(messageList[:occupied])
+            state.CoordChannel.Out() <- msg
+        }
+        occupied = 0
+    }
+    for {
+        select {
+            case msg := <- state.CoordNaggleChannel:
+                messageList[occupied] = msg
+                occupied++
+                if occupied >= NAGGLE_SIZE {
+                    send()
+                } else if !timerRunning {
+                    timerRunning = true
+                    go timerFunc()
+                }
+            case <- timerChan:
+                timerRunning = false
+                send()
+        }
+    }
+}
+
+func (state *ComputePeerState) NaggleOutChannel () {
+    NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
+    messageMap := make(map[int] []*sproto.IntermediateData, state.NumClients - 1)
+    occupiedMap := make(map[int] int, state.NumClients - 1)
+    for i := 0; i < state.NumClients; i++ {
+        if i != state.Client {
+            messageMap[i] = make([]*sproto.IntermediateData, NAGGLE_SIZE)
+            occupiedMap[i] = 0
+        }
+    }
+    timerRunning := false
+    timerChan := make(chan bool)
+    timerFunc := func () {
+        time.Sleep(NAGGLE_TIME)
+        timerChan <- true
+    }
+    send := func() {
+        for i := range occupiedMap {
+            if occupiedMap[i] > 0 {
+                msg := IntermediateToNaggledIntermediateMsg(messageMap[i][:occupiedMap[i]])
+                state.PeerOutChannels[i].Out() <- msg
+            }
+            occupiedMap[i] = 0
+        }
+    }
+    for {
+        select {
+            case msg := <- state.PeerOutChannel:
+                messageMap[msg.Client][occupiedMap[msg.Client]] = msg.Message
+                occupiedMap[msg.Client]++
+                if occupiedMap[msg.Client] >= NAGGLE_SIZE {
+                    send()
+                } else if !timerRunning {
+                    timerRunning = true
+                    go timerFunc()
+                }
+
+            case <- timerChan:
+                timerRunning = false
+                send()
+        }
+    }
+}
 
 func (state *ComputePeerState) UnregisterChannelForRequest (request RequestStepPair) {
     //fmt.Printf("Deleting channel %d %d\n", request.Request, request.Step)
@@ -132,13 +221,16 @@ func (state *ComputePeerState) ReceiveFromPeers () {
         select {
             case msg := <- state.PeerInChannel.In():
                 //fmt.Println("Message on peer channel")
-                intermediate := MsgToIntermediate(msg)
+                intermediateInflated := MsgToNaggledIntermediate(msg)
                 //fmt.Printf("Core received %d->%d request=%d\n", *intermediate.Client, state.Client, *intermediate.RequestCode)
-                if intermediate == nil {
+                if intermediateInflated == nil {
                     panic ("Could not read intermediate message")
                 }
-                key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
-                state.MaybeSendOnChannel (*key, intermediate)
+                for intermediateIdx := range intermediateInflated.Messages {
+                    intermediate := intermediateInflated.Messages[intermediateIdx]
+                    key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
+                    state.MaybeSendOnChannel (*key, intermediate)
+                }
             case <- keepaliveCh:
                 fmt.Printf("ReceiveFromPeers is alive\n")
             
@@ -201,7 +293,7 @@ func (state *ComputePeerState) SharesDelete (share string) {
     state.RedisClient.Del(share)
 }
 
-func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [][]byte) {
+func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- *sproto.Response) {
     //fmt.Println("Dispatching action")
     var resp *sproto.Response
     switch *action.Action {
@@ -258,21 +350,26 @@ func (state *ComputePeerState) DispatchAction (action *sproto.Action, r chan<- [
             fmt.Println("Unimplemented action")
             resp = state.DefaultAction(action)
     }
-    respB := ResponseToMsg(resp)
     if resp == nil {
         panic ("Malformed response")
     }
-    r <- respB
+    r <- resp
 }
 
 func (state *ComputePeerState) ActionMsg (msg [][]byte) {
     //fmt.Println("Received message from coordination channel")
-    action := MsgToAction(msg)
+    naction := MsgToNaggledAction(msg)
     //fmt.Println("Converted to action")
-    if action == nil {
+    if naction == nil {
         panic ("Malformed action")
     }
-    go state.DispatchAction(action, state.CoordChannel.Out())
+    
+    go func (naction *sproto.NaggledAction) {
+        for idx := range naction.Messages {
+            action := naction.Messages[idx]
+            state.DispatchAction(action, state.CoordNaggleChannel)
+        }
+    } (naction)
 }
 
 const ZMQ_HWM int = int((^uint32(0) >> 1))
@@ -355,6 +452,8 @@ func EventLoop (config *string, client int, q chan int) {
     fmt.Println("PeerOut sockets created and connected")
     state.PeerInChannel = state.PeerInSock.Channels()
     fmt.Println("Calling from ReceiveFromPeers")
+    go state.NaggleOutChannel()
+    go state.NaggleCoordChannel()
     go state.ReceiveFromPeers()
     state.Sync(q)
     fmt.Println("Sync finished")

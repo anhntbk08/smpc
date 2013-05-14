@@ -14,6 +14,10 @@ import (
          "runtime"
         )
 var _ = time.Now
+type CoordChannelMessage struct {
+    Index int
+    Message *sproto.Action
+}
 type InputPeerState struct {
     ClusterID int64
     ComputeSlaves [][]byte
@@ -22,7 +26,9 @@ type InputPeerState struct {
     PubSock *zmq.Socket
     CoordSock *zmq.Socket
     CoordChannel *zmq.Channels
+    CoordNaggleChannel chan *CoordChannelMessage 
     PubChannel *zmq.Channels
+    PubNaggleChannel chan *sproto.Action
     ChannelMap map[int64] chan *sproto.Response
     ChannelLock sync.RWMutex
 }
@@ -34,6 +40,122 @@ func (state *InputPeerState) InitPeerState (clients int) {
     state.ComputeSlaves = make([][]byte, clients)
     state.ChannelMap = make(map[int64] chan *sproto.Response, 1000)
     state.RequestID = 1
+    state.CoordNaggleChannel = make(chan *CoordChannelMessage)
+    state.PubNaggleChannel = make(chan *sproto.Action)
+}
+
+const NAGGLE_SIZE int = 1000
+const NAGGLE_MULT time.Duration = time.Duration(5)
+func ActionToCoordChannelMessage (action *sproto.Action, index int) (*CoordChannelMessage) {
+    coordMessage := &CoordChannelMessage{}
+    coordMessage.Index = index
+    coordMessage.Message = action
+    return coordMessage
+}
+
+func (state *InputPeerState) ActionToNaggledActionCoord(messageList []*sproto.Action, index int) ([][]byte) {
+    msg := make([][]byte, 3)
+    msg[0] = state.ComputeSlaves[index]
+    msg[1] = []byte("")
+    naggle := &sproto.NaggledAction{}
+    naggle.Messages = messageList
+    var err error
+    msg[2], err = proto.Marshal(naggle)
+    if err != nil {
+        return nil
+    }
+    return msg
+}
+
+func (state *InputPeerState) ActionToNaggledActionPub(messageList []*sproto.Action) ([][]byte) {
+    msg := make([][]byte, 2)
+    msg[0] = []byte("CMD") 
+    naggle := &sproto.NaggledAction{}
+    naggle.Messages = messageList
+    var err error
+    msg[1], err = proto.Marshal(naggle)
+    if err != nil {
+        return nil
+    }
+    return msg
+}
+
+func (state *InputPeerState) NagglePubChannel () {
+    NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
+    messageList := make([]*sproto.Action, NAGGLE_SIZE)
+    occupied := 0
+    timerRunning := false
+    timerChan := make(chan bool)
+    timerFunc := func () {
+        time.Sleep(NAGGLE_TIME)
+        timerChan <- true
+    }
+    send := func() {
+        if occupied > 0 {
+            msg := state.ActionToNaggledActionPub(messageList[:occupied])
+            state.PubChannel.Out() <- msg
+        }
+        occupied = 0
+    }
+    for {
+        select {
+            case msg := <- state.PubNaggleChannel:
+                messageList[occupied] = msg
+                occupied++
+                if occupied >= NAGGLE_SIZE {
+                    send()
+                } else if !timerRunning {
+                    timerRunning = true
+                    go timerFunc()
+                }
+            case <- timerChan:
+                timerRunning = false
+                send()
+        }
+    }
+}
+
+func (state *InputPeerState) NaggleCoordChannel () {
+    NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
+    messageList := make([][]*sproto.Action, len(state.ComputeSlaves))
+    occupied := make([]int, len(state.ComputeSlaves))
+    for i := range messageList {
+        messageList[i] = make([]*sproto.Action, NAGGLE_SIZE)
+        occupied[i] = 0
+    }
+    timerRunning := false
+    timerChan := make(chan bool)
+    timerFunc := func () {
+        time.Sleep(NAGGLE_TIME)
+        timerChan <- true
+    }
+    send := func() {
+        for i := range messageList {
+            if occupied[i] > 0 {
+                msg := state.ActionToNaggledActionCoord(messageList[i][:occupied[i]], i)
+                state.CoordChannel.Out() <- msg
+            }
+            occupied[i] = 0
+        }
+    }
+    for {
+        select {
+            case msg := <- state.CoordNaggleChannel:
+                idx := msg.Index
+                messageList[idx][occupied[idx]] = msg.Message
+                occupied[idx]++
+                if occupied[idx] >= NAGGLE_SIZE {
+                    send()
+                } else if !timerRunning {
+                    timerRunning = true
+                    go timerFunc()
+                }
+
+            case <- timerChan:
+                timerRunning = false
+                send()
+        }
+    }
 }
 
 func (state *InputPeerState) GetChannelForRequest (request int64) (chan *sproto.Response) {
@@ -58,17 +180,22 @@ func (state *InputPeerState) MessageLoop () {
     for {
         select {
             case msg := <- state.CoordChannel.In():
-               response := &sproto.Response{}
-               err := proto.Unmarshal(msg[2], response)
+               nresponse := &sproto.NaggledResponse{}
+               err := proto.Unmarshal(msg[2], nresponse)
                if err != nil {
                    panic(fmt.Sprintf("Error unmarshalling response %v\n", err))
                }
-               c := state.GetChannelForRequest(*response.RequestCode)
-               if c == nil {
-                   fmt.Printf("%d has no associated channel \n", *response.RequestCode)
-               } else {
-                   c <- response
-               }
+               go func (nresponse *sproto.NaggledResponse) {
+                   for idx := range nresponse.Messages {
+                       response := nresponse.Messages[idx]
+                       c := state.GetChannelForRequest(*response.RequestCode)
+                       if c == nil {
+                           fmt.Printf("%d has no associated channel \n", *response.RequestCode)
+                       } else {
+                           c <- response
+                       }
+                   }
+               } (nresponse) 
         }
     }
 }
@@ -120,6 +247,8 @@ func EventLoop (config *string, state *InputPeerState, q chan int, ready chan bo
     state.CoordChannel = state.CoordSock.ChannelsBuffer(BUFFER_SIZE) 
     state.PubChannel = state.PubSock.ChannelsBuffer(BUFFER_SIZE)
     state.Sync(q)
+    go state.NaggleCoordChannel()
+    go state.NagglePubChannel()
     go state.MessageLoop() 
     ready <- true
     // Handle errors from here on out

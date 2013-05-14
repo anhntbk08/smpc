@@ -63,8 +63,11 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     for !done {
         for i, r := range beaconReceived {
             if !r {
-                msg := IntermediateToMsg(beacon)
-                state.PeerOutChannels[i].Out() <- msg
+                //msg := IntermediateToMsg(beacon)
+                msg := &IntermediateMessage{}
+                msg.Client = i
+                msg.Message = beacon
+                state.PeerOutChannel <- msg
             }
         }
         sleep := make(chan bool, 1)
@@ -81,7 +84,10 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
                     beaconReceived[*rcvd.Client] = true
                     //fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
                 } else {
-                    state.PeerOutChannels[int(*rcvd.Client)].Out() <- IntermediateToMsg(beaconRcvd)
+                    msg := &IntermediateMessage{}
+                    msg.Client = int(*rcvd.Client)
+                    msg.Message = beaconRcvd
+                    state.PeerOutChannel <- msg
                     //fmt.Printf("SYNC %d -> %d beacon\n", *rcvd.Client, state.Client)
                 }
             case <- sleep:

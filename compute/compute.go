@@ -77,7 +77,7 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
 
 const BUFFER_SIZE int = 1000
 const NAGGLE_SIZE int = 1000
-const NAGGLE_MULT time.Duration = time.Duration(1)
+const NAGGLE_MULT time.Duration = time.Duration(2)
 func (state *ComputePeerState) NaggleCoordChannel () {
     NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
     messageList := make([]*sproto.Response, NAGGLE_SIZE)

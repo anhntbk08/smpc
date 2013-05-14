@@ -37,6 +37,7 @@ func (state *ComputePeerState) Sync (q chan int) {
 }
 
 func (state *ComputePeerState) IntermediateSync (q chan int) {
+    fmt.Printf("Starting IntermediateSync\n")
     beaconReceived := make([]bool, state.NumClients)
     clientSeen := make([]bool, state.NumClients)
     beaconReceived[state.Client] = true
@@ -59,10 +60,12 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     t2 := sproto.IntermediateData_SyncBeaconReceived
     beaconRcvd.Type  = &t2
     done := false
+    ch := state.ChannelForRequest(*MakeRequestStep(rcode,step))
     //fmt.Println("SYNC Entering intermediate sync")
     for !done {
         for i, r := range beaconReceived {
             if !r {
+                fmt.Printf("Sending Beacon to %v\n", i)
                 //msg := IntermediateToMsg(beacon)
                 msg := &IntermediateMessage{}
                 msg.Client = i
@@ -76,19 +79,18 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
             sleep <- true
             
         }()
-        ch := state.ChannelForRequest(*MakeRequestStep(rcode,step))
         select {
             case rcvd := <- ch :
                 clientSeen[*rcvd.Client] = true
                 if *rcvd.Type ==  sproto.IntermediateData_SyncBeaconReceived {
                     beaconReceived[*rcvd.Client] = true
-                    //fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
+                    fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
                 } else {
                     msg := &IntermediateMessage{}
                     msg.Client = int(*rcvd.Client)
                     msg.Message = beaconRcvd
                     state.PeerOutChannel <- msg
-                    //fmt.Printf("SYNC %d -> %d beacon\n", *rcvd.Client, state.Client)
+                    fmt.Printf("SYNC %d -> %d beaconrcvd\n", *rcvd.Client, state.Client)
                 }
             case <- sleep:
         }
@@ -99,5 +101,5 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     }
     
     state.UnregisterChannelForRequest(*MakeRequestStep(rcode, step))
-    //fmt.Println("SYNC Exiting intermediate sync")
+    fmt.Println("SYNC Exiting intermediate sync")
 }

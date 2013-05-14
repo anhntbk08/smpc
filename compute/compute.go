@@ -364,12 +364,10 @@ func (state *ComputePeerState) ActionMsg (msg [][]byte) {
         panic ("Malformed action")
     }
     
-    go func (naction *sproto.NaggledAction) {
-        for idx := range naction.Messages {
-            action := naction.Messages[idx]
-            state.DispatchAction(action, state.CoordNaggleChannel)
-        }
-    } (naction)
+    for idx := range naction.Messages {
+        action := naction.Messages[idx]
+        go state.DispatchAction(action, state.CoordNaggleChannel)
+    }
 }
 
 const ZMQ_HWM int = int((^uint32(0) >> 1))

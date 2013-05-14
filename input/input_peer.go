@@ -185,17 +185,16 @@ func (state *InputPeerState) MessageLoop () {
                if err != nil {
                    panic(fmt.Sprintf("Error unmarshalling response %v\n", err))
                }
-               go func (nresponse *sproto.NaggledResponse) {
-                   for idx := range nresponse.Messages {
-                       response := nresponse.Messages[idx]
+               for idx := range nresponse.Messages {
+                   go func (response *sproto.Response) {
                        c := state.GetChannelForRequest(*response.RequestCode)
                        if c == nil {
                            fmt.Printf("%d has no associated channel \n", *response.RequestCode)
                        } else {
                            c <- response
                        }
-                   }
-               } (nresponse) 
+                   } (nresponse.Messages[idx])
+               }
         }
     }
 }

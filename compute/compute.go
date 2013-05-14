@@ -71,13 +71,13 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
     state.PeerOutChannel = make(chan *IntermediateMessage, INITIAL_CHANNEL_CAPACITY * INITIAL_CHANNEL_CAPACITY * numClients)
     state.ChannelMap = make(map[RequestStepPair] chan *sproto.IntermediateData, INITIAL_MAP_CAPACITY)
     state.SquelchTraffic = make(map[RequestStepPair] bool, INITIAL_MAP_CAPACITY)
-    state.CoordNaggleChannel = make(chan *sproto.Response)
+    state.CoordNaggleChannel = make(chan *sproto.Response, INITIAL_CHANNEL_CAPACITY)
     return state
 }
 
 const BUFFER_SIZE int = 1000
-const NAGGLE_SIZE int = 100
-const NAGGLE_MULT time.Duration = time.Duration(1)
+const NAGGLE_SIZE int = 250
+const NAGGLE_MULT time.Duration = time.Duration(2)
 func (state *ComputePeerState) NaggleCoordChannel () {
     NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
     messageList := make([]*sproto.Response, NAGGLE_SIZE)

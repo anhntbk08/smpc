@@ -95,18 +95,25 @@ func (state *ComputePeerState) NaggleCoordChannel () {
         }
         occupied = 0
     }
+    timerSend := int64(0)
+    bufferSend := int64(0)
+    defer func() {
+        fmt.Printf("\n\nMessage send stats: Sent %d using TIMER, %d using buffer\n", timerSend, bufferSend)
+    }()
     for {
         select {
             case msg := <- state.CoordNaggleChannel:
                 messageList[occupied] = msg
                 occupied++
                 if occupied >= NAGGLE_SIZE {
+                    bufferSend++
                     send()
                 } else if !timerRunning {
                     timerRunning = true
                     go timerFunc()
                 }
             case <- timerChan:
+                timerSend++
                 timerRunning = false
                 send()
         }
@@ -138,12 +145,18 @@ func (state *ComputePeerState) NaggleOutChannel () {
             occupiedMap[i] = 0
         }
     }
+    timerSend := int64(0)
+    bufferSend := int64(0)
+    defer func() {
+        fmt.Printf("\n\nMessage send stats: Sent %d using TIMER, %d using buffer\n", timerSend, bufferSend)
+    }()
     for {
         select {
             case msg := <- state.PeerOutChannel:
                 messageMap[msg.Client][occupiedMap[msg.Client]] = msg.Message
                 occupiedMap[msg.Client]++
                 if occupiedMap[msg.Client] >= NAGGLE_SIZE {
+                    bufferSend++
                     send()
                 } else if !timerRunning {
                     timerRunning = true
@@ -151,6 +164,7 @@ func (state *ComputePeerState) NaggleOutChannel () {
                 }
 
             case <- timerChan:
+                timerSend++
                 timerRunning = false
                 send()
         }

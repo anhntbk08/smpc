@@ -86,10 +86,15 @@ func (state *InputPeerState) NagglePubChannel () {
     occupied := 0
     timerRunning := false
     timerChan := make(chan bool)
+    timerSend := int64(0)
+    bufferSend := int64(0)
     timerFunc := func () {
         time.Sleep(NAGGLE_TIME)
         timerChan <- true
     }
+    defer func() {
+        fmt.Printf("\n\nMessage send stats: Sent %d using TIMER, %d using buffer\n", timerSend, bufferSend)
+    }()
     send := func() {
         if occupied > 0 {
             msg := state.ActionToNaggledActionPub(messageList[:occupied])
@@ -103,12 +108,14 @@ func (state *InputPeerState) NagglePubChannel () {
                 messageList[occupied] = msg
                 occupied++
                 if occupied >= NAGGLE_SIZE {
+                    bufferSend++
                     send()
                 } else if !timerRunning {
                     timerRunning = true
                     go timerFunc()
                 }
             case <- timerChan:
+                timerSend++
                 timerRunning = false
                 send()
         }
@@ -129,6 +136,11 @@ func (state *InputPeerState) NaggleCoordChannel () {
         time.Sleep(NAGGLE_TIME)
         timerChan <- true
     }
+    timerSend := int64(0)
+    bufferSend := int64(0)
+    defer func() {
+        fmt.Printf("\n\nMessage send stats: Sent %d using TIMER, %d using buffer\n", timerSend, bufferSend)
+    }()
     send := func() {
         for i := range messageList {
             if occupied[i] > 0 {
@@ -145,6 +157,7 @@ func (state *InputPeerState) NaggleCoordChannel () {
                 messageList[idx][occupied[idx]] = msg.Message
                 occupied[idx]++
                 if occupied[idx] >= NAGGLE_SIZE {
+                    bufferSend++
                     send()
                 } else if !timerRunning {
                     timerRunning = true
@@ -152,6 +165,7 @@ func (state *InputPeerState) NaggleCoordChannel () {
                 }
 
             case <- timerChan:
+                timerSend++
                 timerRunning = false
                 send()
         }

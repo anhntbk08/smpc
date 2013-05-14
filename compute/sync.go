@@ -52,6 +52,7 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     beacon.Client = &client
     t := sproto.IntermediateData_SyncBeacon
     beacon.Type  = &t
+    msgBeacon := IntermediateToMsg(beacon)
 
     beaconRcvd := &sproto.IntermediateData{}
     beaconRcvd.RequestCode = &rcode
@@ -59,6 +60,7 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
     beaconRcvd.Client = &client
     t2 := sproto.IntermediateData_SyncBeaconReceived
     beaconRcvd.Type  = &t2
+    msgBeaconRcvd := IntermediateToMsg(beaconRcvd)
     done := false
     ch := state.ChannelForRequest(*MakeRequestStep(rcode,step))
     //fmt.Println("SYNC Entering intermediate sync")
@@ -66,11 +68,10 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
         for i, r := range beaconReceived {
             if !r {
                 fmt.Printf("Sending Beacon to %v\n", i)
-                //msg := IntermediateToMsg(beacon)
-                msg := &IntermediateMessage{}
-                msg.Client = i
-                msg.Message = beacon
-                state.PeerOutChannel <- msg
+                //msg := &IntermediateMessage{}
+                //msg.Client = i
+                //msg.Message = beacon
+                state.PeerOutChannels[i].Out() <- msgBeacon
             }
         }
         sleep := make(chan bool, 1)
@@ -84,13 +85,15 @@ func (state *ComputePeerState) IntermediateSync (q chan int) {
                 clientSeen[*rcvd.Client] = true
                 if *rcvd.Type ==  sproto.IntermediateData_SyncBeaconReceived {
                     beaconReceived[*rcvd.Client] = true
+                    fmt.Printf("Beacon RECEIVED %d", *rcvd.Client)
                     fmt.Printf("SYNC %d -> %d beacon received\n", *rcvd.Client, state.Client)
                 } else {
-                    msg := &IntermediateMessage{}
-                    msg.Client = int(*rcvd.Client)
-                    msg.Message = beaconRcvd
-                    state.PeerOutChannel <- msg
-                    fmt.Printf("SYNC %d -> %d beaconrcvd\n", *rcvd.Client, state.Client)
+                    //msg := &IntermediateMessage{}
+                    //msg.Client = int(*rcvd.Client)
+                    //msg.Message = beaconRcvd
+                    //state.PeerOutChannel[i]<- msg
+                    state.PeerOutChannels[int(*rcvd.Client)].Out() <- msgBeaconRcvd
+                    fmt.Printf("SYNC %d -> %d beaconrcvd\n", state.Client, *rcvd.Client)
                 }
             case <- sleep:
         }

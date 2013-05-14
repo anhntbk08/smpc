@@ -238,13 +238,20 @@ func (state *ComputePeerState) ReceiveFromPeers () {
                 intermediateInflated := MsgToNaggledIntermediate(msg)
                 //fmt.Printf("Core received %d->%d request=%d\n", *intermediate.Client, state.Client, *intermediate.RequestCode)
                 if intermediateInflated == nil {
-                    panic ("Could not read intermediate message")
-                }
-                for intermediateIdx := range intermediateInflated.Messages {
-                    intermediate := intermediateInflated.Messages[intermediateIdx]
+                    intermediate := MsgToIntermediate(msg)
+                    if intermediate == nil {
+                        fmt.Printf("Indecipherable message\n")
+                        os.Exit(1)
+                    }
                     key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
                     state.MaybeSendOnChannel (*key, intermediate)
-                }
+                } else {
+                    for intermediateIdx := range intermediateInflated.Messages {
+                        intermediate := intermediateInflated.Messages[intermediateIdx]
+                        key := MakeRequestStep(*intermediate.RequestCode, *intermediate.Step)
+                        state.MaybeSendOnChannel (*key, intermediate)
+                    }
+               }
             case <- keepaliveCh:
                 fmt.Printf("ReceiveFromPeers is alive\n")
             

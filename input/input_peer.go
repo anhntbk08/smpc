@@ -44,7 +44,7 @@ func (state *InputPeerState) InitPeerState (clients int) {
     state.PubNaggleChannel = make(chan *sproto.Action, INITIAL_CHANNEL_SIZE)
 }
 
-const NAGGLE_SIZE int = 275
+var NAGGLE_SIZE int = 275
 const NAGGLE_MULT time.Duration = time.Duration(2)
 func ActionToCoordChannelMessage (action *sproto.Action, index int) (*CoordChannelMessage) {
     coordMessage := &CoordChannelMessage{}
@@ -296,6 +296,7 @@ func main() {
     topoFile := flag.String("topo", "", "Topology file")
     dest := flag.Int64("dest", 0, "Destination")
     cpuprof := flag.String("cpuprofile", "", "write cpu profile")
+    naggle := flag.Int("naggle", NAGGLE_SIZE, "naggle size")
     flag.Parse()
     if *cpuprof != "" {
         f, err := os.Create(*cpuprof)
@@ -313,6 +314,7 @@ func main() {
             pprof.StopCPUProfile()
         }()
     }
+    NAGGLE_SIZE = *naggle
     os_channel := make(chan os.Signal, 2)
     signal.Notify(os_channel)
     configs := strings.Split(*config, " ")

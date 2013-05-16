@@ -76,7 +76,7 @@ func MakeComputePeerState (client int, numClients int) (*ComputePeerState) {
 }
 
 const BUFFER_SIZE int = 1000
-const NAGGLE_SIZE int = 275
+var NAGGLE_SIZE int = 275
 const NAGGLE_MULT time.Duration = time.Duration(2)
 func (state *ComputePeerState) NaggleCoordChannel () {
     NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
@@ -543,7 +543,9 @@ func main() {
     client := flag.Int("peer", 0, "Input peer")
     cpuprof := flag.String("cpuprofile", "", "write cpu profile")
     memprof := flag.String("memprofile", "", "write mem profile")
+    naggle := flag.Int("naggle", NAGGLE_SIZE, "naggle size")
     flag.Parse()
+    NAGGLE_SIZE = *naggle
     if *cpuprof != "" {
         f, err := os.Create(*cpuprof)
         if err != nil {

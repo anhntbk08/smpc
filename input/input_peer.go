@@ -45,7 +45,7 @@ func (state *InputPeerState) InitPeerState (clients int) {
 }
 
 var NAGGLE_SIZE int = 275
-const NAGGLE_MULT time.Duration = time.Duration(2)
+var NAGGLE_TIME time.Duration = time.Duration(2) * time.Millisecond
 func ActionToCoordChannelMessage (action *sproto.Action, index int) (*CoordChannelMessage) {
     coordMessage := &CoordChannelMessage{}
     coordMessage.Index = index
@@ -81,7 +81,6 @@ func (state *InputPeerState) ActionToNaggledActionPub(messageList []*sproto.Acti
 }
 
 func (state *InputPeerState) NagglePubChannel () {
-    NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
     messageList := make([]*sproto.Action, NAGGLE_SIZE)
     occupied := 0
     timerRunning := false
@@ -125,7 +124,6 @@ func (state *InputPeerState) NagglePubChannel () {
 }
 
 func (state *InputPeerState) NaggleCoordChannel () {
-    NAGGLE_TIME := NAGGLE_MULT * time.Millisecond
     messageList := make([][]*sproto.Action, len(state.ComputeSlaves))
     occupied := make([]int, len(state.ComputeSlaves))
     for i := range messageList {
@@ -297,6 +295,8 @@ func main() {
     dest := flag.Int64("dest", 0, "Destination")
     cpuprof := flag.String("cpuprofile", "", "write cpu profile")
     naggle := flag.Int("naggle", NAGGLE_SIZE, "naggle size")
+    naggleTimeDefault := float64(int64(NAGGLE_TIME))
+    naggleTime := flag.Float64("naggleTime", naggleTimeDefault, "naggle time")
     flag.Parse()
     if *cpuprof != "" {
         f, err := os.Create(*cpuprof)
@@ -315,6 +315,7 @@ func main() {
         }()
     }
     NAGGLE_SIZE = *naggle
+    NAGGLE_TIME = time.Duration(int64(*naggleTime * 1000.0)) * time.Microsecond
     os_channel := make(chan os.Signal, 2)
     signal.Notify(os_channel)
     configs := strings.Split(*config, " ")

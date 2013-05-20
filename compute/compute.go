@@ -546,7 +546,7 @@ func main() {
     naggleTime := flag.Float64("naggleTime", naggleTimeDefault, "naggle time")
     flag.Parse()
     NAGGLE_SIZE = *naggle
-    NAGGLE_TIME = time.Duration(int64(*naggleTime * 1000.0)) * time.Microsecond
+    NAGGLE_TIME = time.Duration(int64(*naggleTime * 1000.0) / int64(time.Millisecond)) * time.Microsecond
     if *cpuprof != "" {
         f, err := os.Create(*cpuprof)
         if err != nil {

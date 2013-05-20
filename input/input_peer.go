@@ -295,7 +295,7 @@ func main() {
     dest := flag.Int64("dest", 0, "Destination")
     cpuprof := flag.String("cpuprofile", "", "write cpu profile")
     naggle := flag.Int("naggle", NAGGLE_SIZE, "naggle size")
-    naggleTimeDefault := float64(int64(NAGGLE_TIME))
+    naggleTimeDefault := float64(int64(NAGGLE_TIME) / int64(time.Millisecond))
     naggleTime := flag.Float64("naggleTime", naggleTimeDefault, "naggle time")
     flag.Parse()
     if *cpuprof != "" {

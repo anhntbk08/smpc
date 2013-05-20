@@ -46,6 +46,7 @@ func MakeTopology (json *topology.JsonTopology, states []*InputPeerState, q chan
     for idx := range exportChans {
         for idxi := range exportChans[idx] {
             for idxj := range exportChans[idx][idxi] {
+                fmt.Printf("Waiting for %d %d %d\n", idx, idxi, idxj)
                 <- exportChans[idx][idxi][idxj]
             }
         }

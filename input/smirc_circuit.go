@@ -29,10 +29,15 @@ func circuit (states []*InputPeerState, topoFile *string, dest int64, end_channe
         for i := range topo.AdjacencyMatrix {
             ch[i] = states[int(i) % len(states)].RunSingleIteration(topo, i, end_channel)
         }
-        for i  := range topo.AdjacencyMatrix {
-            fmt.Printf("Waiting for %d (assigned to %d) %v\n", i, int(i) % len(states), ch[i])
-            nnhop[i] = <- ch[i]
+        r := WaitForResults(ch)
+        for val := range r {
+            nnhop[val.Index] = val.Value
+            fmt.Printf("Received %d\n", val.Index)
         }
+        //for i  := range topo.AdjacencyMatrix {
+        //    fmt.Printf("Waiting for %d (assigned to %d) %v\n", i, int(i) % len(states), ch[i])
+        //    nnhop[i] = <- ch[i]
+        //}
         topo.NextHop = nnhop
         elapsed += (time.Since(t).Seconds())
         //fmt.Printf("Round, avg time so far %f\n", elapsed/float64(it + 1))

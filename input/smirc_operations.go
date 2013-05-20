@@ -13,12 +13,7 @@ func (state *InputPeerState) ComputeExportStitch (topo *Topology, node int64, re
             ch[ind][j] = state.CmpConst(result[j][ind], topo.IndicesLink[node][j], int64(ind), q)
         }
     }
-    for i := range ch {
-        for j := range ch[i] {
-            //fmt.Printf("Waiting for %d %d for node %d\n", i, j, node)
-            <- ch[i][j]
-        }
-    }
+    WaitForChannels2D(ch)
 }
 
 // This also accounts for has next hop
@@ -39,11 +34,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         }
     }
 
-    for i := range ch {
-        for j := range ch[i] {
-            <- ch[i][j]
-        }
-    }
+    WaitForChannels2D(ch)
 
     //fmt.Printf("What is next hop\n")
     //state.PrintMatrix(tempVar, q)
@@ -60,11 +51,7 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         }
     }
 
-    for i := range ch {
-        for j := range ch[i] {
-            <- ch[i][j]
-        }
-    }
+    WaitForChannels2D(ch)
 
     // Extract a single export vector
     fmt.Printf("For node %d combining export policies (Step 3)\n", node)
@@ -109,11 +96,8 @@ func (state *InputPeerState) ComputeExportPolicies (topo *Topology, node int64, 
         }
     }
 
-    for i := range ch2 {
-        for j := range ch2[i] {
-            <- ch2[i][j]
-        }
-    }
+    WaitForChannels2D(ch2)
+
     //fmt.Printf("Rearranged\n")
     //state.PrintMatrix(tempVar2, q)
     //fmt.Printf("\n")

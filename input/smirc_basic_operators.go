@@ -21,9 +21,7 @@ func (state *InputPeerState) FanInOrForSmirc ( result string, vars []string, q c
                 defer state.DeleteTmpValue(tmpVar, q) 
                 vars[i/2 + start] = tmpVar
             }
-            for ch := range chans {
-                <- chans[ch]
-            }
+            WaitForChannels(chans)
             lenVar = (lenVar / 2) + start
             iters += 1
         }
@@ -73,9 +71,7 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
             neqzResults[i] = fmt.Sprintf("__ArgMaxSmirc_%d_%d_%d_neqz", i, state.ClusterID,  mungingConst)
             neqzChans[i] = state.Neqz(neqzResults[i], values[i], q)
         }
-        for ch := range chans {
-            <- chans[ch]
-        }
+        WaitForChannels(chans)
         // fmt.Printf("Looking at fanned in values ")
         // state.PrintArray(fannedIn, q)
 
@@ -83,9 +79,7 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
         for i := 0; i < len(values); i++ {
             oneSub[i] = state.OneSub(fannedIn[i], fannedIn[i], q)
         }
-        for ch := range oneSub {
-            <- oneSub[ch]
-        }
+        WaitForChannels(oneSub)
         // fmt.Printf("Looking at fanned in values (after 1 sub) ")
         // state.PrintArray(fannedIn, q)
 
@@ -98,24 +92,16 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
             defer state.DeleteTmpValue(mulResults[i], q)
             mulChans[i] = state.Mul(mulResults[i], indices[i], fannedIn[i], q)
         }
-        for ch := range mulChans {
-            <- mulChans[ch]
-        }
-
+        WaitForChannels(mulChans)
         // fmt.Printf("Looking at fanned in values * indices")
         // state.PrintArray(mulResults, q)
-
-        for ch := range neqzChans {
-            <- neqzChans[ch]
-        }
+        WaitForChannels(neqzChans)
 
         for i := 0; i < len(values); i++ {
             mulChans[i] = state.Mul(mulResults[i], mulResults[i], neqzResults[i], q)
         }
 
-        for ch := range mulChans {
-            <- mulChans[ch]
-        }
+        WaitForChannels(mulChans)
 
         // fmt.Printf("Looking at fanned in values * indices * (value != 0)")
         // state.PrintArray(mulResults, q)
@@ -132,10 +118,7 @@ func (state *InputPeerState) ArgMax (result string, indices []string, values []s
                 mulResults[i/2 + start] = mulResults[i]
             }
 
-            for ch := range sumChans {
-                <- sumChans[ch]
-            }
-
+            WaitForChannels(sumChans)
             lenMul = (lenMul / 2) + start
         }
         done <- true

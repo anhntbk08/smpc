@@ -20,7 +20,7 @@ import (
 //const LargePrime int64 = 571710243073 
 
 // (2 bits)
-const LargePrime int64 = 77309411329 
+var LargePrime *big.Int = big.NewInt(77309411329)
 
 // Distribute a secret among a certain number of peers. Use the large Prime number above
 // as the field
@@ -34,28 +34,24 @@ func ReconstructSecret (shares *[]int64, sharesAvailable *[]bool, nshare int32) 
 }
 
 // The actual secret sharing function, computes coefficients for the polynomial
-func ShamirSecretSharing (num int64, shares int32, prime int64) ([]int64){
+func ShamirSecretSharing (num int64, shares int32, prime *big.Int) ([]int64){
     if shares <= 0 {
         return nil
     }
     
-    if prime <= 2 {
-        return nil
-    }
     degree := (shares - 1) / 2 // Degree must be no greater than (shares - 1)/2 to allow for multiplication 
     coeffs := GenerateCoefficients (degree, big.NewInt(num), prime) 
-    primebig := big.NewInt(prime)
-    return SharesForCoefficients (shares, &coeffs, degree, primebig)
+    return SharesForCoefficients (shares, &coeffs, degree, prime)
 }
 
 // Generate coefficients
-func GenerateCoefficients (degree int32, c *big.Int, prime int64) ([]big.Int) {
+func GenerateCoefficients (degree int32, c *big.Int, prime *big.Int) ([]big.Int) {
     coeffs := make([]big.Int, degree + 1)
     coeffs[0].Set(c) // The constant is the constant coefficient for the argument
     for coeff := int32(1); coeff < degree + 1; coeff++ {
       var tmp int64
       binary.Read(rand.Reader, binary.LittleEndian, &tmp)
-      coeffs[coeff].Set(big.NewInt(tmp % prime))
+      coeffs[coeff].Mod(big.NewInt(tmp), prime)
     }
     return coeffs
 }
@@ -88,8 +84,9 @@ func FastExp (n int64, exp *big.Int, field *big.Int) (*big.Int) {
 }
 
 // Lagrangian interpolation to reconstruct the constant factor for a polynomial
-func Interpolate (shares *[]int64, shareAvailable *[]bool, nshare int32, prime int64) (int64) {
-    primebig := big.NewInt(prime)
+func Interpolate (shares *[]int64, shareAvailable *[]bool, nshare int32, prime *big.Int) (int64) {
+    primebig := big.NewInt(0)
+    primebig.Set(prime)
     resultbig := big.NewInt(0)
     for share := int32(0); share < nshare; share++ {
       if ((*shareAvailable)[share]) {
@@ -104,7 +101,7 @@ func Interpolate (shares *[]int64, shareAvailable *[]bool, nshare int32, prime i
         }
         lagrange := big.NewInt(1)
         lagrange.DivMod(numerator, denominator, primebig)
-        primebig.Set(big.NewInt(prime)) // Strangely divmod sets primebig to 0, divmod bad
+        primebig.Set(prime) // Strangely divmod sets primebig to 0, divmod bad
         tmp := big.NewInt(1)
         tmp.Mul(big.NewInt((*shares)[share]), lagrange)
         resultTmp := big.NewInt(0)

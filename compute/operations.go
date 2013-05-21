@@ -197,7 +197,7 @@ func (state *ComputePeerState) Mul (action *sproto.Action) (*sproto.Response) {
 
 // Test if a value is 0
 func (state* ComputePeerState) neqz (val int64, rcode int64) (int64) {
-    exponent := core.LargePrime - 1 // We are going to raise the number to this power. 
+    exponent := core.LargePrime.Int64() - 1 // We are going to raise the number to this power. 
     res := int64(1)
     step := int32(0)
     //fmt.Printf("Computing neqz for rcode %d\n", rcode)
